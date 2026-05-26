@@ -4,7 +4,7 @@ $host     = 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com';
 $port     = 4000; 
 $user     = '3vTUmEehdVYc5pg.root';
 $password = 'Pd8EOwUWoHfM5feG';
-$database = 'senjatrack-db';
+$database = 'senjatrack_db'; // <--- DIUBAH MENJADI UNDERSCORE COCOK DENGAN DI TIDB
 
 // Inisialisasi MySQLi
 $koneksi = mysqli_init();
@@ -13,7 +13,7 @@ if (!$koneksi) {
     die("Inisialisasi MySQLi gagal");
 }
 
-// Mengaktifkan SSL tanpa harus menunjuk ke file .crt spesifik di OS
+// Mengaktifkan SSL
 mysqli_options($koneksi, MYSQLI_OPT_SSL_VERIFY_SERVER_CERT, true);
 
 // Lakukan koneksi menggunakan flag SSL
