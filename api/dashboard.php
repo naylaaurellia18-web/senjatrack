@@ -177,9 +177,9 @@ $recent_transactions = $stmt_tx->fetchAll();
                             <?php if (empty($recent_transactions)): ?>
                                 <tr>
                                     <td colspan="3" class="py-8 text-center text-slate-400 font-medium">
-                                        Belem ada rekaman transaksi. Silakan input mutasi kas pertamamu!
+                                        Belum ada rekaman transaksi. Silakan input mutasi kas pertamamu!
                                     </td>
-                                endforeach; ?>
+                                </tr>
                             <?php else: ?>
                                 <?php foreach ($recent_transactions as $tx): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
