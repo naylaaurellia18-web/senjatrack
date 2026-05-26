@@ -19,6 +19,10 @@
       "dest": "api/dashboard.php"
     },
     {
+      "src": "/logout",
+      "dest": "api/logout.php"
+    },
+    {
       "src": "/",
       "dest": "api/login.php"
     }
