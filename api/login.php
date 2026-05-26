@@ -5,7 +5,7 @@ session_start();
 
 // Jika sudah pernah login, langsung bypass ke aplikasi utama
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php"); 
+    header("Location: dashboard.php");
     exit;
 }
 
