@@ -7,6 +7,18 @@
   },
   "routes": [
     {
+      "src": "/login",
+      "dest": "api/login.php"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "api/dashboard.php"
+    },
+    {
+      "src": "/register",
+      "dest": "api/register.php"
+    },
+    {
       "src": "/(.*)",
       "dest": "api/$1"
     }
