@@ -7,40 +7,20 @@
   },
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/api/index.php"
-    },
-    {
       "source": "/login",
       "destination": "/api/login.php"
-    },
-    {
-      "source": "/register",
-      "destination": "/api/register.php"
     },
     {
       "source": "/dashboard",
       "destination": "/api/dashboard.php"
     },
     {
-      "source": "/fitur_plus",
-      "destination": "/api/fitur_plus.php"
+      "source": "/register",
+      "destination": "/api/register.php"
     },
     {
-      "source": "/logout",
-      "destination": "/api/logout.php"
-    },
-    {
-      "source": "/proses_transaksi",
-      "destination": "/api/proses_transaksi.php"
-    },
-    {
-      "source": "/proses_nabung",
-      "destination": "/api/proses_nabung.php"
-    },
-    {
-      "source": "/proses_tagihan",
-      "destination": "/api/proses_tagihan.php"
+      "source": "/",
+      "destination": "/api/login.php"
     }
   ]
 }
