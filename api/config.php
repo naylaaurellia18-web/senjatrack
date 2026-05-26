@@ -1,16 +1,16 @@
 <?php
-// config.php
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'senja_track');
+// Konfigurasi koneksi ke TiDB Cloud
+$host     = 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com'; 
+$port     = 4000; // TiDB menggunakan port 4000, bukan 3306
+$user     = '3vTUmEehdVYc5pg.root';
+$password = 'Pd8EOwUWoHfM5feG';
+$database = 'senjatrack-db';
 
-try {
-    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-    ]);
-} catch (PDOException $e) {
-    die("Koneksi ke database Senja Track gagal: " . $e->getMessage());
+// Membuat koneksi ke server database
+$koneksi = mysqli_connect($host, $user, $password, $database, $port);
+
+// Cek apakah koneksi berhasil atau gagal
+if (!$koneksi) {
+    die("Koneksi ke database Senja Track gagal: " . mysqli_connect_error());
 }
 ?>
