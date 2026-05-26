@@ -5,15 +5,30 @@
       "runtime": "vercel-php@0.9.0"
     }
   },
-  "rewrites": [
-    { "source": "/", "destination": "/api/index.php" },
-    { "source": "/login", "destination": "/api/login.php" },
-    { "source": "/register", "destination": "/api/register.php" },
-    { "source": "/dashboard", "destination": "/api/dashboard.php" },
-    { "source": "/logout", "destination": "/api/logout.php" },
-    { "source": "/fitur_plus", "destination": "/api/fitur_plus.php" },
-    { "source": "/proses_transaksi", "destination": "/api/proses_transaksi.php" },
-    { "source": "/proses_nabung", "destination": "/api/proses_nabung.php" },
-    { "source": "/proses_tagihan", "destination": "/api/proses_tagihan.php" }
+  "routes": [
+    {
+      "src": "/login",
+      "dest": "api/login.php"
+    },
+    {
+      "src": "/register",
+      "dest": "api/register.php"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "api/dashboard.php"
+    },
+    {
+      "src": "/logout",
+      "dest": "api/logout.php"
+    },
+    {
+      "src": "/proses_transaksi",
+      "dest": "api/proses_transaksi.php"
+    },
+    {
+      "src": "/",
+      "dest": "api/index.php"
+    }
   ]
 }

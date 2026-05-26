@@ -16,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $pass  = $_POST['password'];
 
-    // Validasi format email dengan filter_var
     if (!empty($nama) && !empty($email) && !empty($pass)) {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = "Format alamat email tidak valid!";
