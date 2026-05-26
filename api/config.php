@@ -1,5 +1,5 @@
 <?php
-// Konfigurasi koneksi ke TiDB Cloud (Versi PDO)
+// Konfigurasi koneksi ke TiDB Cloud (Versi PDO PHP 8.5+)
 $host     = 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com'; 
 $port     = 4000; 
 $user     = '3vTUmEehdVYc5pg.root';
@@ -7,15 +7,16 @@ $password = 'Pd8EOwUWoHfM5feG';
 $database = 'senjatrack_db';
 
 try {
-    // Menyusun dsn dengan opsi SSL aktif
     $dsn = "mysql:host=$host;port=$port;dbname=$database;charset=utf8mb4";
+    
+    // Konfigurasi SSL menggunakan standar baru PHP 8.5 (Pdo\Mysql)
     $options = [
-        PDO::MYSQL_ATTR_SSL_CA => true, // Mengaktifkan SSL untuk TiDB
+        \Pdo\Mysql::ATTR_SSL_CA => '/etc/pki/tls/certs/ca-bundle.crt', // Sertifikat bawaan Linux OS Vercel
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ];
 
-    // Membuat koneksi PDO menggunakan nama variabel $pdo
+    // Membuat koneksi PDO
     $pdo = new PDO($dsn, $user, $password, $options);
 
 } catch (PDOException $e) {
