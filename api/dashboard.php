@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php'; // FIX: Wajib di-include agar $pdo tersedia
 session_start();
 
 // Jika belum login, tendang ke halaman login

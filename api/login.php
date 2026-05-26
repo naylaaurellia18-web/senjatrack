@@ -75,11 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form action="login.php" method="POST" class="space-y-4">
-
-            <form action="" method="POST" class="space-y-4">
                 
                 <div class="space-y-1">
-                    <label Lifor="email" class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Email </label>
+                    <label for="email" class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Email</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-400">✉️</span>
                         <input type="email" id="email" name="email" required autocomplete="on"
@@ -111,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mt-6 pt-4 border-t border-slate-100 text-center">
                 <p class="text-xs text-slate-400">
                     Belum punya akun? 
-                    <a href="/api/register.php" class="...">Daftar Sekarang</a>
+                    <a href="register.php" class="text-orange-500 font-bold hover:underline ml-0.5">Daftar Sekarang</a>
                 </p>
             </div>
 

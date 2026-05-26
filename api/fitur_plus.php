@@ -105,10 +105,22 @@ if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
 // ==========================================
 // 3. AMBIL DATA DARI DATABASE (AGREGASI)
 // ==========================================
-$saving_goals = $pdo->query("SELECT * FROM saving_goals WHERE user_id = $user_id ORDER BY id DESC")->fetchAll();
-$uploaded_receipts = $pdo->query("SELECT * FROM receipts WHERE user_id = $user_id ORDER BY id DESC")->fetchAll();
-$all_bills = $pdo->query("SELECT * FROM bills WHERE user_id = $user_id ORDER BY status_bayar ASC, jatuh_tempo ASC")->fetchAll();
-$shopping_plans = $pdo->query("SELECT * FROM shopping_plans WHERE user_id = $user_id ORDER BY status_beli ASC, id DESC")->fetchAll();
+// FIX: Pakai prepared statements untuk mencegah SQL Injection
+$stmt_sg = $pdo->prepare("SELECT * FROM saving_goals WHERE user_id = :uid ORDER BY id DESC");
+$stmt_sg->execute(['uid' => $user_id]);
+$saving_goals = $stmt_sg->fetchAll();
+
+$stmt_rc = $pdo->prepare("SELECT * FROM receipts WHERE user_id = :uid ORDER BY id DESC");
+$stmt_rc->execute(['uid' => $user_id]);
+$uploaded_receipts = $stmt_rc->fetchAll();
+
+$stmt_bl = $pdo->prepare("SELECT * FROM bills WHERE user_id = :uid ORDER BY status_bayar ASC, jatuh_tempo ASC");
+$stmt_bl->execute(['uid' => $user_id]);
+$all_bills = $stmt_bl->fetchAll();
+
+$stmt_sp = $pdo->prepare("SELECT * FROM shopping_plans WHERE user_id = :uid ORDER BY status_beli ASC, id DESC");
+$stmt_sp->execute(['uid' => $user_id]);
+$shopping_plans = $stmt_sp->fetchAll();
 
 // Ambil Agregasi Riwayat Transaksi untuk Hitung Skor Kesehatan Finansial
 $current_month = date('Y-m');
