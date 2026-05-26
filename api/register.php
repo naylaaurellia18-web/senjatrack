@@ -13,23 +13,30 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nama  = htmlspecialchars(trim($_POST['nama']));
-    $email = htmlspecialchars(trim($_POST['email']));
+    $email = trim($_POST['email']);
     $pass  = $_POST['password'];
 
+    // FIX: Validasi format email dengan filter_var
     if (!empty($nama) && !empty($email) && !empty($pass)) {
-        // Cek apakah email sudah terdaftar
-        $stmt_check = $pdo->prepare("SELECT id FROM users WHERE email = :email");
-        $stmt_check->execute(['email' => $email]);
-        
-        if ($stmt_check->rowCount() > 0) {
-            $error = "Email ini sudah terdaftar di sistem kami!";
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Format alamat email tidak valid!";
         } else {
-            // Hash password untuk keamanan data pengguna
-            $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
-            $stmt_ins = $pdo->prepare("INSERT INTO users (nama, email, password) VALUES (:nama, :email, :pass)");
-            $stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password]);
+            $email = htmlspecialchars($email);
+
+            // Cek apakah email sudah terdaftar
+            $stmt_check = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+            $stmt_check->execute(['email' => $email]);
             
-            $success = "Akun berhasil dibuat! Silakan masuk ke halaman login.";
+            if ($stmt_check->rowCount() > 0) {
+                $error = "Email ini sudah terdaftar di sistem kami!";
+            } else {
+                // Hash password untuk keamanan data pengguna
+                $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
+                $stmt_ins = $pdo->prepare("INSERT INTO users (nama, email, password) VALUES (:nama, :email, :pass)");
+                $stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password]);
+                
+                $success = "Akun berhasil dibuat! Silakan masuk ke halaman login.";
+            }
         }
     } else {
         $error = "Semua kolom wajib diisi!";

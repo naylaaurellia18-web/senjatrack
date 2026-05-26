@@ -15,6 +15,8 @@ $status = '';
 
 // --- AUTOMATIC TABLE CHECKER ---
 try {
+    // FIX: Tambahkan saving_goals yang sebelumnya tidak dibuat otomatis
+    $pdo->exec("CREATE TABLE IF NOT EXISTS saving_goals (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_target VARCHAR(255) NOT NULL, nominal_target FLOAT NOT NULL, nominal_terkumpul FLOAT NOT NULL DEFAULT 0)");
     $pdo->exec("CREATE TABLE IF NOT EXISTS receipts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, file_name VARCHAR(255) NOT NULL, tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
     $pdo->exec("CREATE TABLE IF NOT EXISTS bills (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_tagihan VARCHAR(255) NOT NULL, nominal FLOAT NOT NULL, jatuh_tempo DATE NOT NULL, status_bayar ENUM('belum', 'lunas') DEFAULT 'belum')");
     $pdo->exec("CREATE TABLE IF NOT EXISTS shopping_plans (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_barang VARCHAR(255) NOT NULL, estimasi_harga FLOAT NOT NULL, status_beli ENUM('belum', 'sudah') DEFAULT 'belum')");
@@ -56,21 +58,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // C. Upload Struk Belanja
     if ($action === 'upload_struk') {
         if (isset($_FILES['struk_file']) && $_FILES['struk_file']['error'] === UPLOAD_ERR_OK) {
-            $file_tmp = $_FILES['struk_file']['tmp_name'];
-            $file_ext = strtolower(pathinfo($_FILES['struk_file']['name'], PATHINFO_EXTENSION));
+            $file_tmp  = $_FILES['struk_file']['tmp_name'];
+            $file_size = $_FILES['struk_file']['size'];
+            $file_ext  = strtolower(pathinfo($_FILES['struk_file']['name'], PATHINFO_EXTENSION));
             
-            if (in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
+            // FIX: Validasi ukuran file maksimal 2MB (sesuai keterangan di UI)
+            if ($file_size > 2 * 1024 * 1024) {
+                $message = "Gagal! Ukuran file melebihi batas maksimal 2MB.";
+                $status = "error";
+            } elseif (!in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
+                $message = "Gagal! Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.";
+                $status = "error";
+            } else {
                 $upload_dir = 'uploads/receipts/';
                 if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
 
                 $new_file_name = 'struk_' . time() . '_' . uniqid() . '.' . $file_ext;
+                // FIX: Tampilkan pesan error eksplisit jika move_uploaded_file gagal (misal di Vercel)
                 if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
                     $stmt = $pdo->prepare("INSERT INTO receipts (user_id, file_name) VALUES (:user_id, :file_name)");
                     $stmt->execute(['user_id' => $user_id, 'file_name' => $new_file_name]);
                     $message = "Struk belanja berhasil diarsipkan! 📸";
                     $status = "success";
+                } else {
+                    $message = "Gagal menyimpan file. Penyimpanan lokal tidak tersedia di environment ini.";
+                    $status = "error";
                 }
             }
+        } else {
+            $message = "Tidak ada file yang dipilih atau terjadi kesalahan upload.";
+            $status = "error";
         }
     }
 
@@ -299,7 +316,7 @@ if ($total_income > 0) {
                             <p class="text-slate-400 italic text-center py-6">Belum ada daftar tagihan tercatat.</p>
                         <?php else: ?>
                             <?php foreach ($all_bills as $bill): 
-                                $sisa_hari = (strtotime($bill['jatuh_tempo']) - strtotime(date('Y-m-d'))) / 86400;
+                                $sisa_hari = (int)floor((strtotime($bill['jatuh_tempo']) - strtotime(date('Y-m-d'))) / 86400);
                             ?>
                                 <div class="p-3.5 rounded-xl border <?= $bill['status_bayar'] === 'lunas' ? 'bg-emerald-50/40 border-emerald-100' : 'bg-rose-50/40 border-rose-100' ?> flex justify-between items-center">
                                     <div class="space-y-1">
