@@ -2,9 +2,9 @@
 require_once 'config.php';
 session_start();
 
-// Jika user sudah login, langsung bypass ke dashboard
+// Jika user sudah login, langsung bypass ke dashboard menggunakan rute bersih Vercel
 if (isset($_SESSION['user_id'])) { 
-    header("Location: dashboard.php"); 
+    header("Location: /dashboard"); 
     exit; 
 }
 
@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $pass  = $_POST['password'];
 
-    // FIX: Validasi format email dengan filter_var
+    // Validasi format email dengan filter_var
     if (!empty($nama) && !empty($email) && !empty($pass)) {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = "Format alamat email tidak valid!";
@@ -33,82 +33,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Hash password untuk keamanan data pengguna
                 $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
                 $stmt_ins = $pdo->prepare("INSERT INTO users (nama, email, password) VALUES (:nama, :email, :pass)");
-                $stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password]);
                 
-                $success = "Akun berhasil dibuat! Silakan masuk ke halaman login.";
+                if ($stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
+                    $success = "Akun berhasil dibuat! Silakan masuk.";
+                } else {
+                    $error = "Gagal memproses pendaftaran data pendaftaran.";
+                }
             }
         }
     } else {
-        $error = "Semua kolom wajib diisi!";
+        $error = "Semua kolom pendaftaran wajib diisi!";
     }
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Akun Baru - SenjaTrack</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Daftar Akun - SenjaTrack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        .gradient-senja {
-            background: linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #f97316 100%);
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .gradient-senja { background: linear-gradient(135deg, #f97316 0%, #4f46e5 100%); }
     </style>
 </head>
-<body class="bg-amber-50/40 min-h-screen flex flex-col justify-between font-sans text-slate-800">
+<body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
-    <main class="flex-grow flex items-center justify-center px-4 py-12 relative overflow-hidden">
-        <div class="absolute -top-40 -right-40 w-96 h-96 bg-orange-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
-
-        <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 w-full max-w-md relative z-10 transition-all">
+    <main class="flex-1 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-8 border border-slate-100 shadow-2xl shadow-indigo-950/5">
             
-            <div class="text-center space-y-2 mb-6">
-                <div class="inline-flex items-center justify-center w-12 h-12 bg-orange-100 rounded-2xl text-2xl mb-1 shadow-sm">
-                    🌅
-                </div>
-                <h1 class="text-2xl font-bold text-indigo-950 tracking-tight">Buat Akun Baru</h1>
-                <p class="text-xs text-slate-400">Langkah awal kelola keuangan kosan secara cerdas</p>
+            <div class="text-center mb-6">
+                <span class="text-3xl">✨</span>
+                <h1 class="text-xl font-extrabold text-indigo-950 tracking-tight mt-2">Buat Akun Baru</h1>
+                <p class="text-[11px] text-slate-400 mt-1">Bergabung untuk pencatatan keuangan mandiri otomatis</p>
             </div>
 
             <?php if (!empty($error)): ?>
-                <div class="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                    <span>⚠️</span> <p class="font-medium"><?= $error ?></p>
+                <div class="bg-rose-50 border border-rose-100 text-rose-600 text-xs py-3 px-4 rounded-xl mb-4 font-medium flex items-center gap-2">
+                    <span>⚠️</span> <?= htmlspecialchars($error) ?>
                 </div>
             <?php endif; ?>
 
             <?php if (!empty($success)): ?>
-                <div class="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2">
-                    <span>✅</span> <p class="font-medium"><?= $success ?></p>
+                <div class="bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs py-3 px-4 rounded-xl mb-4 font-medium flex items-center gap-2">
+                    <span>✅</span> <?= htmlspecialchars($success) ?>
                 </div>
             <?php endif; ?>
 
-            <form action="register.php" method="POST" class="space-y-4">
+            <form action="" method="POST" class="space-y-4">
                 
-                <div class="space-y-1">
-                    <label for="nama" class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Nama Lengkap</label>
+                <div>
+                    <label for="nama" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-400">👤</span>
-                        <input type="text" id="nama" name="nama" required autocomplete="name"
+                        <input type="text" id="nama" name="nama" required
                                class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all" 
-                               placeholder="Contoh: nayla">
+                               placeholder="Nama lengkap kamu" value="<?= isset($_POST['nama']) ? htmlspecialchars($_POST['nama']) : '' ?>">
                     </div>
                 </div>
 
-                <div class="space-y-1">
-                    <label for="email" class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Alamat Email</label>
+                <div>
+                    <label for="email" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Alamat Email</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-400">✉️</span>
-                        <input type="email" id="email" name="email" required autocomplete="email"
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-400">📧</span>
+                        <input type="email" id="email" name="email" required
                                class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all" 
-                               placeholder="nama@gmail.com">
+                               placeholder="nama@email.com" value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>">
                     </div>
                 </div>
 
-                <div class="space-y-1">
-                    <label for="password" class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Kata Sandi (Password)</label>
+                <div>
+                    <label for="password" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Kata Sandi Baru</label>
                     <div class="relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm text-slate-400">🔒</span>
                         <input type="password" id="password" name="password" required autocomplete="new-password"
@@ -127,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mt-6 pt-4 border-t border-slate-100 text-center">
                 <p class="text-xs text-slate-400">
                     Sudah punya akun? 
-                    <a href="login.php" class="text-orange-500 font-bold hover:underline ml-0.5">Masuk Di Sini</a>
+                    <a href="/login" class="text-orange-500 font-bold hover:underline ml-0.5">Masuk Di Sini</a>
                 </p>
             </div>
 
@@ -135,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
 
     <footer class="bg-indigo-950 text-slate-500 text-[10px] py-4 text-center border-t border-indigo-900/40">
-        <p>&copy; 2026 SenjaTrack System &bull; Secured Identity Provider Gateway</p>
+        <p>&copy; 2026 SenjaTrack Workspace System &bull; Panel Core v4.0</p>
     </footer>
 
 </body>

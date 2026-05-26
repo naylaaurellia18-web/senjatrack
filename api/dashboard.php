@@ -1,10 +1,10 @@
 <?php
-require_once 'config.php'; // FIX: Wajib di-include agar $pdo tersedia
+require_once 'config.php'; 
 session_start();
 
-// Jika belum login, tendang ke halaman login
+// Jika belum login, tendang balik ke rute login bersih Vercel
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: /login");
     exit;
 }
 
@@ -28,166 +28,162 @@ $stmt_all_expense = $pdo->prepare("SELECT SUM(jumlah) as total FROM transactions
 $stmt_all_expense->execute(['user_id' => $user_id]);
 $total_all_expense = $stmt_all_expense->fetch()['total'] ?? 0;
 
-// Saldo Aktif Saat Ini = Total Pemasukan - Semua Pengeluaran
-$saldo_aktif = $total_income - $total_all_expense;
+// Hitung Saldo Bersih Realtime Akun Terkait
+$net_balance = $total_income - $total_all_expense;
 
-// 2. AMBIL 5 AKTIVITAS TRANSAKSI TERAKHIR
-$stmt_recent = $pdo->prepare("SELECT kategori, tipe, jumlah, tanggal FROM transactions WHERE user_id = :user_id ORDER BY tanggal DESC LIMIT 5");
-$stmt_recent->execute(['user_id' => $user_id]);
-$recent_transactions = $stmt_recent->fetchAll();
+// 2. QUERY HISTORI TRANSAKSI TERBARU (Limit 5 untuk optimasi dashboard)
+$stmt_tx = $pdo->prepare("SELECT * FROM transactions WHERE user_id = :user_id ORDER BY tanggal DESC, id DESC LIMIT 5");
+$stmt_tx->execute(['user_id' => $user_id]);
+$recent_transactions = $stmt_tx->fetchAll();
 ?>
 
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Utama - SenjaTrack</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Dashboard - SenjaTrack Finansial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        .gradient-senja {
-            background: linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #f97316 100%);
-        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .gradient-senja { background: linear-gradient(135deg, #f97316 0%, #4f46e5 100%); }
     </style>
 </head>
-<body class="bg-amber-50/40 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+<body class="bg-slate-50 min-h-screen text-slate-800">
 
-    <nav class="bg-indigo-950 text-white px-6 py-4 shadow-md sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">🌅</span>
-                <span class="font-bold text-xl tracking-wider text-orange-400">Senja<span class="text-white">Track</span></span>
+    <nav class="bg-indigo-950 text-white shadow-xl px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl">🌅</span>
+            <span class="font-extrabold text-base tracking-tight">SenjaTrack<span class="text-orange-400 font-medium text-xs ml-1">Finansial</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="text-right hidden sm:block">
+                <p class="text-xs font-bold text-slate-100"><?= htmlspecialchars($user_nama) ?></p>
+                <p class="text-[10px] text-slate-400">ID Member #<?= sprintf('%04d', $user_id) ?></p>
             </div>
-            <div class="flex items-center gap-4 text-xs font-semibold">
-                <span class="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 hidden sm:inline">
-                    👋 Halo, <span class="text-orange-300"><?= htmlspecialchars($user_nama) ?></span>
-                </span>
-                <a href="logout.php" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl transition-all shadow-md">
-                    Keluar 🚪
-                </a>
-            </div>
+            <a href="/logout" class="bg-white/10 hover:bg-rose-600 hover:text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+                Keluar 🚪
+            </a>
         </div>
     </nav>
 
-    <main class="flex-grow max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+    <main class="max-w-4xl mx-auto px-4 py-8">
         
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
             <div>
-                <h1 class="text-xl font-bold text-indigo-950">Workspace Finansial Anda</h1>
-                <p class="text-xs text-slate-400">Kelola uang saku kuliah harian dengan presisi otomatis.</p>
+                <h2 class="text-xl font-extrabold text-indigo-950 tracking-tight">Halo, Beraktivitas Kembali 👋</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Berikut ikhtisar ringkas status arus kas keuangan kamu hari ini.</p>
             </div>
-            <div class="flex gap-2 w-full sm:w-auto">
-                <a href="dashboard.php" class="flex-1 sm:flex-none text-center text-xs bg-orange-500 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition-all">
-                    🏠 Dashboard Utama
-                </a>
-                <a href="fitur_plus.php" class="flex-1 sm:flex-none text-center text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-950 font-bold px-4 py-2.5 rounded-xl border border-indigo-100 transition-all">
-                    ✨ Fitur Pro (Nabung & Struk)
-                </a>
+            <div class="text-xs text-slate-500 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100 font-medium self-start sm:self-center">
+                📅 Tanggal: <span class="font-bold text-indigo-950"><?= date('d F Y') ?></span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
             
-            <div class="gradient-senja text-white p-6 rounded-2xl shadow-lg relative overflow-hidden flex flex-col justify-between h-32">
-                <div class="absolute -right-6 -bottom-6 text-7xl opacity-10">💰</div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-orange-200 block">Sisa Saldo Aktif Dompet</span>
-                <h2 class="text-2xl font-extrabold tracking-tight">
-                    Rp <?= number_format($saldo_aktif, 0, ',', '.') ?>
-                </h2>
-                <span class="text-[10px] text-slate-300 italic">*Siap dialokasikan kapan saja</span>
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-md shadow-indigo-950/5 relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-indigo-50 rounded-bl-full -z-0 opacity-40 transition-all group-hover:scale-110"></div>
+                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2 relative z-10">Total Saldo Bersih</p>
+                <h3 class="text-xl font-black text-indigo-950 tracking-tight relative z-10">
+                    Rp <?= number_format($net_balance, 0, ',', '.') ?>
+                </h3>
+                <div class="mt-3 flex items-center gap-1.5 text-[10px] text-slate-500 font-medium relative z-10">
+                    <span class="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-bold">Safe</span> Akumulasi laba berjalan berjalan.
+                </div>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32 relative">
-                <div class="absolute right-4 top-4 w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600 text-sm">📈</div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Pemasukan Kumulatif</span>
-                <h2 class="text-2xl font-extrabold text-emerald-600 tracking-tight">
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-md shadow-indigo-950/5 relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-0 opacity-40 transition-all group-hover:scale-110"></div>
+                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2 relative z-10">Semua Pemasukan</p>
+                <h3 class="text-xl font-black text-emerald-600 tracking-tight relative z-10">
                     Rp <?= number_format($total_income, 0, ',', '.') ?>
-                </h2>
-                <span class="text-[10px] text-slate-400">Semua dana masuk terkumpul</span>
+                </h3>
+                <div class="mt-3 flex items-center gap-1.5 text-[10px] text-slate-500 font-medium relative z-10">
+                    <span class="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">IN</span> Dana masuk yang terekam sistem.
+                </div>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between h-32 relative">
-                <div class="absolute right-4 top-4 w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600 text-sm">📉</div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Pengeluaran Bulan Ini (<?= date('M') ?>)</span>
-                <h2 class="text-2xl font-extrabold text-rose-600 tracking-tight">
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-md shadow-indigo-950/5 relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-rose-50 rounded-bl-full -z-0 opacity-40 transition-all group-hover:scale-110"></div>
+                <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2 relative z-10">Pengeluaran Bulan Ini</p>
+                <h3 class="text-xl font-black text-rose-600 tracking-tight relative z-10">
                     Rp <?= number_format($total_expense_month, 0, ',', '.') ?>
-                </h2>
-                <span class="text-[10px] text-slate-400">Total belanja & nongkrong bulanan</span>
+                </h3>
+                <div class="mt-3 flex items-center gap-1.5 text-[10px] text-slate-500 font-medium relative z-10">
+                    <span class="text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-bold">OUT</span> Konsumsi operasional s.d saat ini.
+                </div>
             </div>
 
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
             
-            <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm md:col-span-2 space-y-4">
-                <div class="border-b border-slate-100 pb-2">
-                    <h3 class="font-bold text-sm text-indigo-950 flex items-center gap-1.5">⚡ Catat Transaksi Cepat</h3>
-                    <p class="text-[11px] text-slate-400">Data otomatis terhubung ke kalkulator saldo utama.</p>
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm lg:col-span-2 self-start">
+                <div class="border-b border-slate-100 pb-3 mb-4">
+                    <h4 class="text-xs font-extrabold text-indigo-950 uppercase tracking-wider">Catat Mutasi Baru</h4>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Tambahkan arus masuk/keluar ke database</p>
                 </div>
 
-                <form action="proses_transaksi.php" method="POST" class="space-y-4 text-xs">
-                    
-                    <div class="space-y-1">
-                        <label class="font-bold text-slate-600 block">Jenis Aliran Kas</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="border border-slate-200 rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-colors">
-                                <input type="radio" name="tipe" value="pemasukan" required checked class="accent-orange-500">
-                                <span class="font-semibold text-emerald-600">Pemasukan 💰</span>
-                            </label>
-                            <label class="border border-slate-200 rounded-xl p-3 flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-colors">
-                                <input type="radio" name="tipe" value="pengeluaran" required class="accent-orange-500">
-                                <span class="font-semibold text-rose-600">Pengeluaran 💸</span>
-                            </label>
-                        </div>
+                <form action="/proses_transaksi" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tipe Mutasi</label>
+                        <select name="tipe" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                            <option value="pemasukan">📈 Pemasukan (Uang Masuk)</option>
+                            <option value="pengeluaran">📉 Pengeluaran (Uang Keluar)</option>
+                        </select>
                     </div>
 
-                    <div class="space-y-1">
-                        <label for="jumlah" class="font-bold text-slate-600 block">Nominal Uang (Rp)</label>
-                        <input type="number" id="jumlah" name="jumlah" min="100" required
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white text-sm font-semibold tracking-wide transition-all" 
-                               placeholder="Contoh: 50000">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nominal (Rupiah)</label>
+                        <input type="number" name="jumlah" placeholder="Contoh: 50000" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-400">
                     </div>
 
-                    <div class="space-y-1">
-                        <label for="kategori" class="font-bold text-slate-600 block">Kategori / Keperluan</label>
-                        <input type="text" id="kategori" name="kategori" required
-                               class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all" 
-                               placeholder="Contoh: Kiriman Bulanan, Bayar Kos, Makan Malam">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Kategori</label>
+                        <input type="text" name="kategori" placeholder="Gaji, Makanan, Transport, dll" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-400">
                     </div>
 
-                    <button type="submit" 
-                            class="w-full gradient-senja text-white font-bold py-3 rounded-xl hover:opacity-90 shadow-md transform hover:-translate-y-0.5 cursor-pointer transition-all">
-                        Simpan Transaksi Ke Database &rarr;
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tanggal Transaksi</label>
+                        <input type="date" name="tanggal" value="<?= date('Y-m-d') ?>" required class="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-orange-400">
+                    </div>
+
+                    <button type="submit" class="w-full text-[11px] font-extrabold text-white gradient-senja py-3 rounded-xl transition-all shadow-md shadow-indigo-900/10 cursor-pointer">
+                        Simpan Transaksi Realtime
                     </button>
                 </form>
             </div>
 
-            <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm md:col-span-3 space-y-3 flex flex-col justify-between">
-                <div class="space-y-1">
-                    <h3 class="font-bold text-sm text-indigo-950 flex items-center gap-1.5">📜 5 Aktivitas Transaksi Terakhir</h3>
-                    <p class="text-[11px] text-slate-400">Riwayat pengeluaran atau pemasukan yang baru saja dimasukkan user.</p>
-                </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm lg:col-span-3 flex flex-col justify-between min-h-[400px]">
+                <div>
+                    <div class="border-b border-slate-100 pb-3 mb-4 flex items-center justify-between">
+                        <div>
+                            <h4 class="text-xs font-extrabold text-indigo-950 uppercase tracking-wider">Histori Jurnal Keuangan</h4>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Menampilkan maksimal 5 riwayat transaksi terakhir</p>
+                        </div>
+                        <span class="text-xs">📑</span>
+                    </div>
 
-                <div class="overflow-x-auto flex-grow flex flex-col justify-start">
-                    <table class="w-full text-left text-xs text-slate-600 border-collapse">
+                    <table class="w-full text-xs text-left">
                         <thead>
-                            <tr class="text-slate-400 border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider">
-                                <th class="pb-3 pt-1">Tanggal</th>
-                                <th class="pb-3 pt-1">Kategori Keperluan</th>
-                                <th class="pb-3 pt-1 text-right">Jumlah Uang</th>
+                            <tr class="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                                <th class="pb-2">Waktu</th>
+                                <th class="pb-2">Kategori</th>
+                                <th class="pb-2 text-right">Jumlah Mutasi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-50">
                             <?php if (empty($recent_transactions)): ?>
                                 <tr>
-                                    <td colspan="3" class="p-8 text-center text-slate-400 italic">
-                                        Belum ada rekaman aktivitas finansial masuk.
+                                    <td colspan="3" class="py-8 text-center text-slate-400 font-medium">
+                                        Belem ada rekaman transaksi. Silakan input mutasi kas pertamamu!
                                     </td>
-                                </tr>
+                                endforeach; ?>
                             <?php else: ?>
                                 <?php foreach ($recent_transactions as $tx): ?>
-                                    <tr class="hover:bg-slate-50/70 transition-colors">
-                                        <td class="py-3.5 text-slate-400 text-[11px]">
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="py-3.5 text-slate-500 font-medium">
                                             <?= date('d M Y', strtotime($tx['tanggal'])) ?>
                                         </td>
                                         <td class="py-3.5 font-semibold text-slate-700">
