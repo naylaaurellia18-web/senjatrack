@@ -5,26 +5,22 @@
       "runtime": "vercel-php@0.9.0"
     }
   },
-  "routes": [
+  "rewrites": [
     {
       "src": "/login",
-      "dest": "api/login.php"
-    },
-    {
-      "src": "/register",
-      "dest": "api/register.php"
+      "dest": "/api/login.php"
     },
     {
       "src": "/dashboard",
-      "dest": "api/dashboard.php"
+      "dest": "/api/dashboard.php"
     },
     {
-      "src": "/logout",
-      "dest": "api/logout.php"
+      "src": "/register",
+      "dest": "/api/register.php"
     },
     {
       "src": "/",
-      "dest": "api/login.php"
+      "dest": "/api/login.php"
     }
   ]
 }
