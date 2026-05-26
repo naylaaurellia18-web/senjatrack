@@ -7,20 +7,20 @@
   },
   "rewrites": [
     {
-      "src": "/login",
-      "dest": "/api/login.php"
+      "source": "/login",
+      "destination": "/api/login.php"
     },
     {
-      "src": "/dashboard",
-      "dest": "/api/dashboard.php"
+      "source": "/dashboard",
+      "destination": "/api/dashboard.php"
     },
     {
-      "src": "/register",
-      "dest": "/api/register.php"
+      "source": "/register",
+      "destination": "/api/register.php"
     },
     {
-      "src": "/",
-      "dest": "/api/login.php"
+      "source": "/",
+      "destination": "/api/login.php"
     }
   ]
 }
