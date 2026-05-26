@@ -11,6 +11,18 @@
       "dest": "api/index.php"
     },
     {
+      "src": "/login",
+      "dest": "api/login.php"
+    },
+    {
+      "src": "/register",
+      "dest": "api/register.php"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "api/dashboard.php"
+    },
+    {
       "src": "/(.*)",
       "dest": "api/$1"
     }

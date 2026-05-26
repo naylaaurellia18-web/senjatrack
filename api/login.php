@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <form action="login.php" method="POST" class="space-y-4">
+            <form action="" method="POST" class="space-y-4">
                 
                 <div class="space-y-1">
                     <label Lifor="email" class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Email </label>
