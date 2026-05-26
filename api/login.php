@@ -5,7 +5,7 @@ session_start();
 
 // Jika sudah pernah login, langsung bypass ke aplikasi utama
 if (isset($_SESSION['user_id'])) {
-    header("Location: /api/dashboard.php"); 
+    header("Location: dashboard.php"); 
     exit;
 }
 
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_nama'] = $user['nama'];
             
             // Redirect langsung ke dashboard utama
-            header("Location: /api/dashboard.php");
+            header("Location: dashboard.php");
             exit;
         } else {
             $error = "Kombinasi Email atau Password salah, silakan cek kembali.";
