@@ -4,7 +4,7 @@ session_start();
 
 // Proteksi Halaman: Jika belum login, tendang balik ke login.php
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: /api/login.php");
     exit;
 }
 

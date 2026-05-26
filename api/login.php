@@ -5,7 +5,7 @@ session_start();
 
 // Jika sudah pernah login, langsung bypass ke aplikasi utama
 if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
+    header("Location: /api/dashboard.php"); 
     exit;
 }
 
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_nama'] = $user['nama'];
             
             // Redirect langsung ke dashboard utama
-            header("Location: dashboard.php");
+            header("Location: /api/dashboard.php");
             exit;
         } else {
             $error = "Kombinasi Email atau Password salah, silakan cek kembali.";
@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mt-6 pt-4 border-t border-slate-100 text-center">
                 <p class="text-xs text-slate-400">
                     Belum punya akun? 
-                    <a href="register.php" class="text-orange-500 font-bold hover:underline ml-0.5">Daftar Sekarang</a>
+                    <a href="/api/register.php" class="...">Daftar Sekarang</a>
                 </p>
             </div>
 
