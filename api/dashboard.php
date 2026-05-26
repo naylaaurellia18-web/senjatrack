@@ -1,10 +1,9 @@
 <?php
-require_once 'config.php'; 
 session_start();
 
-// Proteksi Halaman: Jika belum login, tendang balik ke login.php
+// Jika belum login, tendang ke halaman login
 if (!isset($_SESSION['user_id'])) {
-    header("Location: /api/login.php");
+    header("Location: login.php");
     exit;
 }
 
