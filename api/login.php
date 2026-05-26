@@ -1,5 +1,6 @@
 <?php
 // login.php
+$stmt = mysqli_prepare($koneksi, "SELECT * FROM users WHERE username = ?");
 require_once 'config.php';
 session_start();
 

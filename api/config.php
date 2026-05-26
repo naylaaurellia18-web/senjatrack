@@ -1,26 +1,24 @@
 <?php
-// Konfigurasi koneksi ke TiDB Cloud
+// Konfigurasi koneksi ke TiDB Cloud (Versi PDO)
 $host     = 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com'; 
 $port     = 4000; 
 $user     = '3vTUmEehdVYc5pg.root';
 $password = 'Pd8EOwUWoHfM5feG';
-$database = 'senjatrack_db'; // <--- DIUBAH MENJADI UNDERSCORE COCOK DENGAN DI TIDB
+$database = 'senjatrack_db';
 
-// Inisialisasi MySQLi
-$koneksi = mysqli_init();
+try {
+    // Menyusun dsn dengan opsi SSL aktif
+    $dsn = "mysql:host=$host;port=$port;dbname=$database;charset=utf8mb4";
+    $options = [
+        PDO::MYSQL_ATTR_SSL_CA => true, // Mengaktifkan SSL untuk TiDB
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ];
 
-if (!$koneksi) {
-    die("Inisialisasi MySQLi gagal");
-}
+    // Membuat koneksi PDO menggunakan nama variabel $pdo
+    $pdo = new PDO($dsn, $user, $password, $options);
 
-// Mengaktifkan SSL
-mysqli_options($koneksi, MYSQLI_OPT_SSL_VERIFY_SERVER_CERT, true);
-
-// Lakukan koneksi menggunakan flag SSL
-$real_connect = mysqli_real_connect($koneksi, $host, $user, $password, $database, $port, NULL, MYSQLI_CLIENT_SSL);
-
-// Cek apakah koneksi berhasil atau gagal
-if (!$real_connect) {
-    die("Koneksi ke database Senja Track gagal: " . mysqli_connect_error());
+} catch (PDOException $e) {
+    die("Koneksi ke database Senja Track gagal: " . $e->getMessage());
 }
 ?>
