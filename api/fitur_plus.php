@@ -5,7 +5,7 @@ session_start();
 
 // Proteksi halaman
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: /login");
     exit;
 }
 
@@ -115,7 +115,7 @@ if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
         $stmt = $pdo->prepare("DELETE FROM shopping_plans WHERE id = :id AND user_id = :uid");
         $stmt->execute(['id' => $b_id, 'uid' => $user_id]);
     }
-    header("Location: fitur_plus.php");
+    header("Location: /fitur_plus");
     exit;
 }
 
@@ -193,7 +193,7 @@ if ($total_income > 0) {
     <nav class="bg-indigo-950 text-white px-8 py-4.5 shadow-xs sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2.5"><span>🌅</span><span class="font-bold text-xl text-orange-400 tracking-wide">SenjaTrack</span></div>
-            <a href="logout.php" class="bg-rose-600 hover:bg-rose-700 text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-xs">Keluar 🚪</a>
+            <a href="/logout" class="bg-rose-600 hover:bg-rose-700 text-xs px-4 py-2 rounded-xl font-bold transition-all shadow-xs">Keluar 🚪</a>
         </div>
     </nav>
 
@@ -205,7 +205,7 @@ if ($total_income > 0) {
                 <p class="text-xs text-slate-400 mt-1">Gunakan modul pelacak lanjutan untuk simulasi dan kearsipan digital.</p>
             </div>
             <div class="flex flex-wrap gap-2.5 w-full sm:w-auto">
-                <a href="dashboard.php" class="text-xs bg-slate-50 text-indigo-950 font-bold px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 transition-all shadow-xs">🏠 Dashboard Utama</a>
+                <a href="/dashboard" class="text-xs bg-slate-50 text-indigo-950 font-bold px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50 transition-all shadow-xs">🏠 Dashboard Utama</a>
                 <button onclick="window.print()" class="text-xs bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all">🖨️ Cetak Laporan</button>
             </div>
         </div>
@@ -239,7 +239,7 @@ if ($total_income > 0) {
                                 </div>
                                 <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden"><div class="gradient-senja h-2 rounded-full" style="width: <?= $persen ?>%"></div></div>
                                 <p class="text-[10px] text-slate-400">Terkumpul: <strong class="text-indigo-950">Rp <?= number_format($goal['nominal_terkumpul'], 0, ',', '.') ?></strong> / Rp <?= number_format($goal['nominal_target'], 0, ',', '.') ?></p>
-                                <form action="proses_nabung.php" method="POST" class="flex gap-1.5 pt-1">
+                                <form action="/proses_nabung" method="POST" class="flex gap-1.5 pt-1">
                                     <input type="hidden" name="goal_id" value="<?= $goal['id'] ?>">
                                     <input type="number" name="nominal_setor" required placeholder="Masukkan nominal (Rp)" class="w-full bg-white border border-slate-200 rounded-lg p-2 text-[10px] focus:outline-none focus:border-orange-400">
                                     <button type="submit" class="bg-indigo-950 hover:bg-indigo-900 text-white font-bold px-3 rounded-lg text-[10px] transition-all">Setor</button>
@@ -283,11 +283,11 @@ if ($total_income > 0) {
                                             </td>
                                             <td class="p-3 text-center space-x-2 whitespace-nowrap">
                                                 <?php if ($plan['status_beli'] === 'belum'): ?>
-                                                    <a href="fitur_plus.php?action_belanja=check&id=<?= $plan['id'] ?>" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[9px] font-bold hover:bg-emerald-100 transition-all">Beli</a>
+                                                    <a href="/fitur_plus?action_belanja=check&id=<?= $plan['id'] ?>" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded text-[9px] font-bold hover:bg-emerald-100 transition-all">Beli</a>
                                                 <?php else: ?>
                                                     <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded text-[9px] font-bold">Selesai</span>
                                                 <?php endif; ?>
-                                                <a href="fitur_plus.php?action_belanja=hapus&id=<?= $plan['id'] ?>" onclick="return confirm('Hapus rencana ini?')" class="text-slate-400 hover:text-rose-600 transition-all">❌</a>
+                                                <a href="/fitur_plus?action_belanja=hapus&id=<?= $plan['id'] ?>" onclick="return confirm('Hapus rencana ini?')" class="text-slate-400 hover:text-rose-600 transition-all">❌</a>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -328,9 +328,9 @@ if ($total_income > 0) {
                                     </div>
                                     <div class="flex gap-1.5 shrink-0">
                                         <?php if ($bill['status_bayar'] === 'belum'): ?>
-                                            <a href="proses_tagihan.php?action=lunas&id=<?= $bill['id'] ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-3 py-1.5 rounded shadow-xs transition-all">Bayar</a>
+                                            <a href="/proses_tagihan?action=lunas&id=<?= $bill['id'] ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-3 py-1.5 rounded shadow-xs transition-all">Bayar</a>
                                         <?php endif; ?>
-                                        <a href="proses_tagihan.php?action=hapus&id=<?= $bill['id'] ?>" onclick="return confirm('Hapus tagihan ini?')" class="bg-slate-100 text-slate-500 hover:text-rose-600 text-[10px] p-1.5 rounded transition-all">❌</a>
+                                        <a href="/proses_tagihan?action=hapus&id=<?= $bill['id'] ?>" onclick="return confirm('Hapus tagihan ini?')" class="bg-slate-100 text-slate-500 hover:text-rose-600 text-[10px] p-1.5 rounded transition-all">❌</a>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -384,7 +384,7 @@ if ($total_income > 0) {
                         <span class="text-base">📸</span>
                         <h3 class="font-bold text-sm text-indigo-950">Scanner & Arsip Berkas Nota</h3>
                     </div>
-                    <form action="fitur_plus.php" method="POST" enctype="multipart/form-data" class="space-y-3 text-xs">
+                    <form action="/fitur_plus" method="POST" enctype="multipart/form-data" class="space-y-3 text-xs">
                         <input type="hidden" name="action" value="upload_struk">
                         <div class="border-2 border-dashed border-slate-200 hover:border-orange-400 rounded-xl p-5 text-center bg-slate-50/50 relative transition-all group">
                             <input type="file" name="struk_file" required accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
@@ -465,7 +465,7 @@ if ($total_income > 0) {
     <div id="belanjaModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-indigo-950 text-sm">🛒 Tambah Rencana Belanja</h3><button onclick="tutupModalBelanja()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div>
-            <form action="fitur_plus.php" method="POST" class="space-y-4 text-xs">
+            <form action="/fitur_plus" method="POST" class="space-y-4 text-xs">
                 <input type="hidden" name="action" value="tambah_belanja">
                 <div><label class="font-bold text-slate-600 block mb-1">Nama Barang / Keperluan</label><input type="text" name="nama_barang" required placeholder="Contoh: Skincare Bulanan" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
                 <div><label class="font-bold text-slate-600 block mb-1">Estimasi Harga (Rp)</label><input type="number" name="estimasi_harga" required placeholder="Contoh: 120000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
@@ -477,7 +477,7 @@ if ($total_income > 0) {
     <div id="tagihanModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-indigo-950 text-sm">🔔 Pasang Pengingat Tagihan</h3><button onclick="tutupModalTagihan()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div>
-            <form action="fitur_plus.php" method="POST" class="space-y-4 text-xs">
+            <form action="/fitur_plus" method="POST" class="space-y-4 text-xs">
                 <input type="hidden" name="action" value="tambah_tagihan">
                 <div><label class="font-bold text-slate-600 block mb-1">Nama Tagihan</label><input type="text" name="nama_tagihan" required placeholder="Contoh: Uang Kos Juni" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
                 <div><label class="font-bold text-slate-600 block mb-1">Jumlah Nominal (Rp)</label><input type="number" name="nominal_tagihan" required placeholder="Contoh: 500000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
@@ -487,7 +487,7 @@ if ($total_income > 0) {
         </div>
     </div>
 
-    <div id="targetModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50"><div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4"><div class="border-b pb-2 flex justify-between items-center"><h3 class="font-bold text-indigo-950 text-sm">🎯 Pasang Target Tabungan</h3><button onclick="tutupModalTarget()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div><form action="fitur_plus.php" method="POST" class="space-y-4 text-xs"><input type="hidden" name="action" value="tambah_target"><div><label class="font-bold text-slate-600 block mb-1">Nama Target</label><input type="text" name="nama_target" required placeholder="Contoh: Beli HP" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><div><label class="font-bold text-slate-600 block mb-1">Nominal (Rp)</label><input type="number" name="nominal_target" required placeholder="Contoh: 3000000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Rencana 🚀</button></form></div></div>
+    <div id="targetModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50"><div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4"><div class="border-b pb-2 flex justify-between items-center"><h3 class="font-bold text-indigo-950 text-sm">🎯 Pasang Target Tabungan</h3><button onclick="tutupModalTarget()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div><form action="/fitur_plus" method="POST" class="space-y-4 text-xs"><input type="hidden" name="action" value="tambah_target"><div><label class="font-bold text-slate-600 block mb-1">Nama Target</label><input type="text" name="nama_target" required placeholder="Contoh: Beli HP" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><div><label class="font-bold text-slate-600 block mb-1">Nominal (Rp)</label><input type="number" name="nominal_target" required placeholder="Contoh: 3000000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Rencana 🚀</button></form></div></div>
 
     <div id="pinModal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50"><div class="w-full max-w-[260px] text-center space-y-6"><div class="space-y-2"><span>🌅</span><h3 class="font-bold text-white text-base">SenjaTrack App Lock</h3><p class="text-xs text-slate-400">Masukkan PIN Keamanan</p></div><div class="flex justify-center gap-4 py-2"><?php for($k=0;$k<6;$k++): ?><div class="pin-dot w-3 h-3 rounded-full bg-slate-700 transition-colors"></div><?php endfor; ?></div><div class="grid grid-cols-3 gap-4 max-w-[240px] mx-auto"><?php for($i=1; $i<=9; $i++): ?><button onclick="pressPin()" class="w-12 h-12 rounded-full border border-slate-700 text-white font-bold text-sm flex items-center justify-center transition-all cursor-pointer mx-auto hover:bg-slate-800"><?= $i ?></button><?php endfor; ?><button onclick="resetPin()" class="w-12 h-12 text-slate-500 font-semibold text-[10px] flex items-center justify-center mx-auto">Reset</button><button onclick="pressPin()" class="w-12 h-12 rounded-full border border-slate-700 text-white font-bold text-sm flex items-center justify-center mx-auto hover:bg-slate-800">0</button><button onclick="tutupPinModal()" class="w-12 h-12 text-rose-500 font-bold text-[10px] flex items-center justify-center mx-auto">Batal</button></div></div></div>
 

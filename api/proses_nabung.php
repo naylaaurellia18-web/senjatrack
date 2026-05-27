@@ -7,7 +7,7 @@ session_start();
 
 // Proteksi: Jika belum login, tendang balik ke login
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: /login");
     exit;
 }
 
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->commit();
 
             // Kembalikan ke halaman fitur plus dengan status sukses
-            header("Location: fitur_plus.php");
+            header("Location: /fitur_plus");
             exit;
 
         } catch (PDOException $e) {
@@ -59,11 +59,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             die("Gagal memproses alokasi tabungan celengan: " . $e->getMessage());
         }
     } else {
-        header("Location: fitur_plus.php");
+        header("Location: /fitur_plus");
         exit;
     }
 } else {
-    header("Location: fitur_plus.php");
+    header("Location: /fitur_plus");
     exit;
 }
 ?>

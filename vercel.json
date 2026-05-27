@@ -6,11 +6,15 @@
     }
   },
   "routes": [
-    { "src": "/", "dest": "api/index.php" },
-    { "src": "/login", "dest": "api/login.php" },
-    { "src": "/register", "dest": "api/register.php" },
-    { "src": "/dashboard", "dest": "api/dashboard.php" },
-    { "src": "/logout", "dest": "api/logout.php" },
-    { "src": "/proses_transaksi", "dest": "api/proses_transaksi.php" }
+    { "src": "/",                    "dest": "/api/index.php" },
+    { "src": "/login",               "dest": "/api/login.php" },
+    { "src": "/register",            "dest": "/api/register.php" },
+    { "src": "/dashboard",           "dest": "/api/dashboard.php" },
+    { "src": "/logout",              "dest": "/api/logout.php" },
+    { "src": "/fitur_plus",          "dest": "/api/fitur_plus.php" },
+    { "src": "/proses_transaksi",    "dest": "/api/proses_transaksi.php" },
+    { "src": "/proses_nabung",       "dest": "/api/proses_nabung.php" },
+    { "src": "/proses_tagihan",      "dest": "/api/proses_tagihan.php" },
+    { "src": "/([a-zA-Z_]+)\\.php",  "dest": "/api/$1.php" }
   ]
 }

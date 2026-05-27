@@ -31,12 +31,12 @@ $is_logged_in = isset($_SESSION['user_id']);
             </div>
             <div class="flex items-center gap-4">
                 <?php if ($is_logged_in): ?>
-                    <a href="dashboard.php" class="text-xs bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
+                    <a href="/dashboard" class="text-xs bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
                         Ke Dashboard 🚀
                     </a>
                 <?php else: ?>
-                    <a href="login.php" class="text-xs text-slate-300 hover:text-white font-medium transition-colors">Masuk</a>
-                    <a href="register.php" class="text-xs bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
+                    <a href="/login" class="text-xs text-slate-300 hover:text-white font-medium transition-colors">Masuk</a>
+                    <a href="/register" class="text-xs bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-md">
                         Daftar Sekarang
                     </a>
                 <?php endif; ?>
@@ -61,11 +61,11 @@ $is_logged_in = isset($_SESSION['user_id']);
                 </p>
                 <div class="pt-4 flex justify-center gap-4">
                     <?php if ($is_logged_in): ?>
-                        <a href="dashboard.php" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-orange-500/20 transform hover:-translate-y-0.5">
+                        <a href="/dashboard" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-orange-500/20 transform hover:-translate-y-0.5">
                             Buka Workspace Anda
                         </a>
                     <?php else: ?>
-                        <a href="register.php" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-orange-500/20 transform hover:-translate-y-0.5">
+                        <a href="/register" class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-orange-500/20 transform hover:-translate-y-0.5">
                             Mulai Catat Gratis
                         </a>
                         <a href="#fitur" class="bg-white/10 hover:bg-white/20 text-white font-medium text-sm px-6 py-3 rounded-xl transition-all border border-white/20">
@@ -137,7 +137,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                     </p>
                 </div>
                 <div class="w-full md:w-auto shrink-0">
-                    <a href="login.php" class="block text-center text-xs bg-white text-indigo-950 font-bold px-5 py-3 rounded-xl hover:bg-orange-400 hover:text-white transition-all shadow-md">
+                    <a href="/login" class="block text-center text-xs bg-white text-indigo-950 font-bold px-5 py-3 rounded-xl hover:bg-orange-400 hover:text-white transition-all shadow-md">
                         Coba Demo Kalender &rarr;
                     </a>
                 </div>

@@ -4,7 +4,7 @@ require_once 'config.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: /login");
     exit;
 }
 
@@ -40,5 +40,5 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     }
 }
 
-header("Location: fitur_plus.php");
+header("Location: /fitur_plus");
 exit;
