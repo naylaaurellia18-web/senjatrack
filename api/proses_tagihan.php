@@ -4,12 +4,13 @@ require_once 'config.php';
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: /login");
     exit;
 }
 
 if (isset($_GET['action']) && isset($_GET['id'])) {
-    $id = $_GET['id'];
+    // FIX: Casting ke integer untuk mencegah manipulasi nilai ID
+    $id = (int)$_GET['id'];
     $user_id = $_SESSION['user_id'];
 
     if ($_GET['action'] === 'lunas') {
@@ -29,7 +30,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
             $stmt_tx->execute([
                 'user_id' => $user_id,
                 'jumlah' => $bill['nominal'],
-                'kategori' => "Bayar Tagihan: " . $bill['nama_tagihan']
+                'kategori' => "Bayar Tagihan: " . htmlspecialchars($bill['nama_tagihan'])
             ]);
             $pdo->commit();
         }
@@ -39,5 +40,5 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     }
 }
 
-header("Location: fitur_plus.php");
+header("Location: /fitur_plus");
 exit;
