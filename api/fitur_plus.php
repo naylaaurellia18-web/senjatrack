@@ -34,8 +34,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nominal_target = (float)($_POST['nominal_target'] ?? 0);
 
         if (!empty($nama_target) && $nominal_target > 0) {
-            $stmt = $pdo->prepare("INSERT INTO saving_goals (user_id, nama_target, nominal_target, nominal_terkumpul) VALUES (:user_id, :nama, :target, 0)");
-            $stmt->execute(['user_id' => $user_id, 'nama' => $nama_target, 'target' => $nominal_target]);
+            // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
+            $manual_id = rand(100000, 999999) . rand(1000, 9999);
+            
+            $stmt = $pdo->prepare("INSERT INTO saving_goals (id, user_id, nama_target, nominal_target, nominal_terkumpul) VALUES (:id, :user_id, :nama, :target, 0)");
+            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_target, 'target' => $nominal_target]);
             $message = "Target menabung baru berhasil dipasang! 🎯";
             $status = "success";
         }
@@ -48,8 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $jatuh_tempo = $_POST['jatuh_tempo'];
 
         if (!empty($nama_tagihan) && $nominal_tagihan > 0 && !empty($jatuh_tempo)) {
-            $stmt = $pdo->prepare("INSERT INTO bills (user_id, nama_tagihan, nominal, jatuh_tempo, status_bayar) VALUES (:user_id, :nama, :nominal, :tempo, 'belum')");
-            $stmt->execute(['user_id' => $user_id, 'nama' => $nama_tagihan, 'nominal' => $nominal_tagihan, 'tempo' => $jatuh_tempo]);
+            // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
+            $manual_id = rand(100000, 999999) . rand(1000, 9999);
+
+            $stmt = $pdo->prepare("INSERT INTO bills (id, user_id, nama_tagihan, nominal, jatuh_tempo, status_bayar) VALUES (:id, :user_id, :nama, :nominal, :tempo, 'belum')");
+            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_tagihan, 'nominal' => $nominal_tagihan, 'tempo' => $jatuh_tempo]);
             $message = "Pengingat tagihan berhasil disimpan! 🔔";
             $status = "success";
         }
@@ -62,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $file_size = $_FILES['struk_file']['size'];
             $file_ext  = strtolower(pathinfo($_FILES['struk_file']['name'], PATHINFO_EXTENSION));
             
-            // FIX: Validasi ukuran file maksimal 2MB (sesuai keterangan di UI)
             if ($file_size > 2 * 1024 * 1024) {
                 $message = "Gagal! Ukuran file melebihi batas maksimal 2MB.";
                 $status = "error";
@@ -74,10 +79,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
 
                 $new_file_name = 'struk_' . time() . '_' . uniqid() . '.' . $file_ext;
-                // FIX: Tampilkan pesan error eksplisit jika move_uploaded_file gagal (misal di Vercel)
                 if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
-                    $stmt = $pdo->prepare("INSERT INTO receipts (user_id, file_name) VALUES (:user_id, :file_name)");
-                    $stmt->execute(['user_id' => $user_id, 'file_name' => $new_file_name]);
+                    // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
+                    $manual_id = rand(100000, 999999) . rand(1000, 9999);
+
+                    $stmt = $pdo->prepare("INSERT INTO receipts (id, user_id, file_name) VALUES (:id, :user_id, :file_name)");
+                    $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'file_name' => $new_file_name]);
                     $message = "Struk belanja berhasil diarsipkan! 📸";
                     $status = "success";
                 } else {
@@ -90,6 +97,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $status = "error";
         }
     }
+
+    // D. Tambah Rencana Belanja Baru
+    if ($action === 'tambah_belanja') {
+        $nama_barang = htmlspecialchars(trim($_POST['nama_barang']));
+        $estimasi_harga = (float)$_POST['estimasi_harga'];
+
+        if (!empty($nama_barang) && $estimasi_harga > 0) {
+            // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
+            $manual_id = rand(100000, 999999) . rand(1000, 9999);
+
+            $stmt = $pdo->prepare("INSERT INTO shopping_plans (id, user_id, nama_barang, estimasi_harga, status_beli) VALUES (:id, :user_id, :nama, :harga, 'belum')");
+            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_barang, 'harga' => $estimasi_harga]);
+            $message = "Item rencana belanja berhasil dimasukkan daftar! 🛒";
+            $status = "success";
+        }
+    }
+}
+// BATAS PERUBAHAN - Biarkan sisa kode di bawah baris ini tetap seperti aslinya...
 
     // D. Tambah Rencana Belanja Baru
     if ($action === 'tambah_belanja') {

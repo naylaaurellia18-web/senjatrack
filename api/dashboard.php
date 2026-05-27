@@ -157,7 +157,7 @@ $recent_transactions = $stmt_recent->fetchAll();
 
                     <button type="submit" 
                             class="w-full gradient-senja text-white font-bold py-3 rounded-xl hover:opacity-90 shadow-md transform hover:-translate-y-0.5 cursor-pointer transition-all">
-                        Simpan Transaksi Ke Database &rarr;
+                        Simpan Transaksi &rarr;
                     </button>
                 </form>
             </div>
