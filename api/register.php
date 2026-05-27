@@ -22,22 +22,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $email = htmlspecialchars($email);
 
-            // Cek apakah email sudah terdaftar
-            $stmt_check = $pdo->prepare("SELECT id FROM users WHERE email = :email");
-            $stmt_check->execute(['email' => $email]);
-            
-            if ($stmt_check->rowCount() > 0) {
-                $error = "Email ini sudah terdaftar di sistem kami!";
-            } else {
-                // Hash password untuk keamanan data pengguna
-                $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
-                $stmt_ins = $pdo->prepare("INSERT INTO users (nama, email, password) VALUES (:nama, :email, :pass)");
+            try {
+                // Cek apakah email sudah terdaftar
+                $stmt_check = $pdo->prepare("SELECT id FROM users WHERE email = :email");
+                $stmt_check->execute(['email' => $email]);
                 
-                if ($stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
-                    $success = "Akun berhasil dibuat! Silakan masuk.";
+                if ($stmt_check->rowCount() > 0) {
+                    $error = "Email ini sudah terdaftar di sistem kami!";
                 } else {
-                    $error = "Gagal memproses pendaftaran data pendaftaran.";
+                    // Hash password untuk keamanan data pengguna
+                    $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
+                    
+                    // Query Insert yang aman dengan prepared statements
+                    $stmt_ins = $pdo->prepare("INSERT INTO users (nama, email, password) VALUES (:nama, :email, :pass)");
+                    
+                    if ($stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
+                        $success = "Akun berhasil dibuat! Silakan masuk.";
+                        // Reset input form jika sukses
+                        $_POST = array();
+                    } else {
+                        $error = "Gagal memproses pendaftaran data pendaftaran.";
+                    }
                 }
+            } catch (PDOException $e) {
+                // Memberikan pesan error yang lebih informatif jika database bermasalah
+                $error = "Pesan Sistem: " . $e->getMessage();
             }
         }
     } else {
@@ -47,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -72,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php if (!empty($error)): ?>
                 <div class="bg-rose-50 border border-rose-100 text-rose-600 text-xs py-3 px-4 rounded-xl mb-4 font-medium flex items-center gap-2">
-                    <span>⚠️</span> <?= htmlspecialchars($error) ?>
+                    <span>⚠️</span> <span class="break-all"><?= htmlspecialchars($error) ?></span>
                 </div>
             <?php endif; ?>
 
