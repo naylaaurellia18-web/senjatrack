@@ -63,7 +63,7 @@ $recent_transactions = $stmt_recent->fetchAll();
                     👋 Halo, <span class="text-orange-300"><?= htmlspecialchars($user_nama) ?></span>
                 </span>
                 <a href="logout.php" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl transition-all shadow-md">
-                    Keluar Keluar 🚪
+                    Keluar 🚪
                 </a>
             </div>
         </div>
