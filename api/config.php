@@ -65,6 +65,46 @@ try {
     )");
     $pdo->exec("ALTER TABLE transactions MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
 
+    // Tabel saving_goals
+    $pdo->exec("CREATE TABLE IF NOT EXISTS saving_goals (
+        id                INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id           INT          NOT NULL,
+        nama_target       VARCHAR(255) NOT NULL,
+        nominal_target    FLOAT        NOT NULL,
+        nominal_terkumpul FLOAT        NOT NULL DEFAULT 0
+    )");
+    $pdo->exec("ALTER TABLE saving_goals MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+
+    // Tabel bills
+    $pdo->exec("CREATE TABLE IF NOT EXISTS bills (
+        id            INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id       INT          NOT NULL,
+        nama_tagihan  VARCHAR(255) NOT NULL,
+        nominal       FLOAT        NOT NULL,
+        jatuh_tempo   DATE         NOT NULL,
+        status_bayar  ENUM('belum','lunas') DEFAULT 'belum'
+    )");
+    $pdo->exec("ALTER TABLE bills MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+
+    // Tabel shopping_plans
+    $pdo->exec("CREATE TABLE IF NOT EXISTS shopping_plans (
+        id             INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id        INT          NOT NULL,
+        nama_barang    VARCHAR(255) NOT NULL,
+        estimasi_harga FLOAT        NOT NULL,
+        status_beli    ENUM('belum','sudah') DEFAULT 'belum'
+    )");
+    $pdo->exec("ALTER TABLE shopping_plans MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+
+    // Tabel receipts
+    $pdo->exec("CREATE TABLE IF NOT EXISTS receipts (
+        id        INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id   INT          NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        tanggal   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    )");
+    $pdo->exec("ALTER TABLE receipts MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+
 } catch (PDOException $e) {
     // Jika ALTER gagal (misalnya sudah benar), abaikan dan lanjutkan
 }

@@ -30,29 +30,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($stmt_check->rowCount() > 0) {
                     $error = "Email ini sudah terdaftar di sistem kami!";
                 } else {
-                    // ---------------------------------------------------------
-                    // PLAN B: GENERATE ID MANUAL AGAR COCOK DENGAN DATABASE ONLINE
-                    // ---------------------------------------------------------
-                    // Ambil ID tertinggi saat ini yang ada di database
-                    $stmt_max = $pdo->query("SELECT MAX(id) as max_id FROM users");
-                    $row_max = $stmt_max->fetch();
-                    
-                    // Jika database masih kosong, mulai dari 1. Jika sudah ada, tambah 1.
-                    $next_id = ($row_max['max_id'] ?? 0) + 1;
-                    // ---------------------------------------------------------
-
                     // Hash password untuk keamanan data pengguna
                     $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
                     
-                    // Kita masukkan kolom 'id' secara eksplisit ke dalam query agar database tidak protes
-                    $stmt_ins = $pdo->prepare("INSERT INTO users (id, nama, email, password) VALUES (:id, :nama, :email, :pass)");
+                    // Biarkan AUTO_INCREMENT database yang generate id secara otomatis
+                    $stmt_ins = $pdo->prepare("INSERT INTO users (nama, email, password) VALUES (:nama, :email, :pass)");
                     
-                    if ($stmt_ins->execute(['id' => $next_id, 'nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
+                    if ($stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
                         $success = "Akun berhasil dibuat! Silakan masuk.";
-                        // Reset input form jika sukses
                         $_POST = array();
                     } else {
-                        $error = "Gagal memproses pendaftaran data pendaftaran.";
+                        $error = "Gagal memproses pendaftaran.";
                     }
                 }
             } catch (PDOException $e) {
