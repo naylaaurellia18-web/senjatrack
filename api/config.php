@@ -1,7 +1,9 @@
 <?php
-// Konfigurasi koneksi ke TiDB Cloud
-$host     = 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com'; 
-$port     = 4000; 
+// ============================================================
+// KONEKSI DATABASE - TiDB Cloud
+// ============================================================
+$host     = 'gateway01.ap-northeast-1.prod.aws.tidbcloud.com';
+$port     = 4000;
 $user     = '3vTUmEehdVYc5pg.root';
 $password = 'Pd8EOwUWoHfM5feG';
 $database = 'senjatrack_db';
@@ -11,14 +13,13 @@ $ssl_ca_paths = [
     '/etc/ssl/certs/ca-certificates.crt',
     '/etc/ssl/cert.pem',
 ];
-
 $ssl_ca = null;
 foreach ($ssl_ca_paths as $path) {
     if (file_exists($path)) { $ssl_ca = $path; break; }
 }
 
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$database;charset=utf8mb4";
+    $dsn     = "mysql:host=$host;port=$port;dbname=$database;charset=utf8mb4";
     $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -32,26 +33,58 @@ try {
 }
 
 // ============================================================
-// FIX KRITIS: DATABASE-BACKED SESSION HANDLER UNTUK VERCEL
+// FIX #1: INISIALISASI & PERBAIKAN STRUKTUR TABEL
 // ------------------------------------------------------------
-// Vercel menjalankan PHP di container serverless yang BERBEDA
-// setiap request. File session di /tmp tidak di-share antar
-// container, sehingga session hilang setelah login.
-// Solusi: simpan session di TiDB agar bisa diakses dari mana saja.
+// Pastikan semua tabel ada dengan skema yang benar.
+// ALTER TABLE dijalankan untuk memastikan kolom id
+// selalu AUTO_INCREMENT meski tabel sudah terlanjur dibuat
+// tanpa AUTO_INCREMENT (penyebab error 1364).
 // ============================================================
-
-// Buat tabel session jika belum ada
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS php_sessions (
-        session_id  VARCHAR(128) NOT NULL PRIMARY KEY,
-        session_data MEDIUMTEXT  NOT NULL,
-        last_activity INT        NOT NULL
+    // Tabel users — pastikan id AUTO_INCREMENT
+    $pdo->exec("CREATE TABLE IF NOT EXISTS users (
+        id       INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        nama     VARCHAR(255) NOT NULL,
+        email    VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // FIX UTAMA: Paksa id menjadi AUTO_INCREMENT jika tabel
+    // sudah terlanjur dibuat tanpa AUTO_INCREMENT
+    $pdo->exec("ALTER TABLE users MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+
+    // Tabel transactions
+    $pdo->exec("CREATE TABLE IF NOT EXISTS transactions (
+        id       INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id  INT          NOT NULL,
+        tipe     ENUM('pemasukan','pengeluaran') NOT NULL,
+        jumlah   FLOAT        NOT NULL,
+        kategori VARCHAR(255) NOT NULL,
+        tanggal  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )");
+    $pdo->exec("ALTER TABLE transactions MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+
 } catch (PDOException $e) {
-    // Tabel sudah ada, lanjutkan
+    // Jika ALTER gagal (misalnya sudah benar), abaikan dan lanjutkan
 }
 
-// Implementasi custom session handler menggunakan TiDB
+// ============================================================
+// FIX #2: DATABASE-BACKED SESSION HANDLER UNTUK VERCEL
+// ------------------------------------------------------------
+// Vercel menjalankan PHP di container serverless berbeda tiap
+// request. File session /tmp tidak di-share antar container,
+// sehingga session hilang → redirect loop (ERR_TOO_MANY_REDIRECTS).
+// Solusi: simpan session di TiDB agar bisa diakses dari mana saja.
+// ============================================================
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS php_sessions (
+        session_id    VARCHAR(128) NOT NULL PRIMARY KEY,
+        session_data  MEDIUMTEXT   NOT NULL,
+        last_activity INT          NOT NULL
+    )");
+} catch (PDOException $e) {}
+
 class DbSessionHandler implements SessionHandlerInterface {
     private PDO $pdo;
     private int $lifetime;
@@ -66,7 +99,7 @@ class DbSessionHandler implements SessionHandlerInterface {
 
     public function read(string $id): string|false {
         $stmt = $this->pdo->prepare(
-            "SELECT session_data FROM php_sessions 
+            "SELECT session_data FROM php_sessions
              WHERE session_id = :id AND last_activity > :expire"
         );
         $stmt->execute(['id' => $id, 'expire' => time() - $this->lifetime]);
@@ -88,12 +121,13 @@ class DbSessionHandler implements SessionHandlerInterface {
     }
 
     public function gc(int $maxlifetime): int|false {
-        $stmt = $this->pdo->prepare("DELETE FROM php_sessions WHERE last_activity < :expire");
+        $stmt = $this->pdo->prepare(
+            "DELETE FROM php_sessions WHERE last_activity < :expire"
+        );
         $stmt->execute(['expire' => time() - $maxlifetime]);
         return $stmt->rowCount();
     }
 }
 
-// Daftarkan handler ke PHP sebelum session_start() dipanggil
 $sessionHandler = new DbSessionHandler($pdo);
 session_set_save_handler($sessionHandler, true);
