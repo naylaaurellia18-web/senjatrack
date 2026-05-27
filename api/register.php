@@ -31,24 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = "Email ini sudah terdaftar di sistem kami!";
                 } else {
                     // ---------------------------------------------------------
-                    // PLAN B: GENERATE ID MANUAL AGAR COCOK DENGAN DATABASE ONLINE
+                    // MEMBUAT STRING UNIK (ID ACAK) SEBAGAI PRIMARY KEY
                     // ---------------------------------------------------------
-                    // Ambil ID tertinggi saat ini yang ada di database
-                    $stmt_max = $pdo->query("SELECT MAX(id) as max_id FROM users");
-                    $row_max = $stmt_max->fetch();
-                    
-                    // Jika database masih kosong, mulai dari 1. Jika sudah ada, tambah 1.
-                    $next_id = ($row_max['max_id'] ?? 0) + 1;
+                    $unique_id = substr(md5(uniqid(rand(), true)), 0, 10); 
                     // ---------------------------------------------------------
 
                     // Hash password untuk keamanan data pengguna
                     $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
                     
-                    // Kita masukkan kolom 'id' secara eksplisit ke dalam query agar database tidak protes
+                    // Kita masukkan ID unik string ke database
                     $stmt_ins = $pdo->prepare("INSERT INTO users (id, nama, email, password) VALUES (:id, :nama, :email, :pass)");
                     
-                    if ($stmt_ins->execute(['id' => $next_id, 'nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
-                        $success = "Akun berhasil dibuat! Silakan masuk.";
+                    if ($stmt_ins->execute(['id' => $unique_id, 'nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
+                        $success = "Akun berhasil dibuat! Mengalihkan ke halaman login dalam 3 detik...";
                         // Reset input form jika sukses
                         $_POST = array();
                     } else {
@@ -56,7 +51,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } catch (PDOException $e) {
-                // Memberikan pesan error yang lebih informatif jika database bermasalah
                 $error = "Pesan Sistem: " . $e->getMessage();
             }
         }
@@ -78,6 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .gradient-senja { background: linear-gradient(135deg, #f97316 0%, #4f46e5 100%); }
     </style>
+    
+    <?php if (!empty($success)): ?>
+        <meta http-equiv="refresh" content="3;url=/login">
+    <?php endif; ?>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
@@ -98,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php if (!empty($success)): ?>
                 <div class="bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs py-3 px-4 rounded-xl mb-4 font-medium flex items-center gap-2">
-                    <span>✅</span> <?= htmlspecialchars($success) ?>
+                    <span class="animate-spin">⏳</span> <?= htmlspecialchars($success) ?>
                 </div>
             <?php endif; ?>
 
@@ -154,6 +152,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <footer class="bg-indigo-950 text-slate-500 text-[10px] py-4 text-center border-t border-indigo-900/40">
         <p>&copy; 2026 SenjaTrack Workspace System &bull; Panel Core v4.0</p>
     </footer>
+
+    <script>
+        <?php if (!empty($success)): ?>
+            setTimeout(function() {
+                window.location.href = "/login";
+            }, 3000); // 3000 milidetik = 3 detik
+        <?php endif; ?>
+    </script>
 
 </body>
 </html>
