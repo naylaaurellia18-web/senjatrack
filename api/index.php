@@ -1,4 +1,5 @@
 <?php
+require_once 'config.php'; // FIX: Wajib ada agar database session handler terdaftar
 session_start();
 // Jika sudah login, berikan opsi ke dashboard langsung di landing page
 $is_logged_in = isset($_SESSION['user_id']);
