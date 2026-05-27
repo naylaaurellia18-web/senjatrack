@@ -33,18 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Hash password untuk keamanan data pengguna
                     $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
                     
-                    // Biarkan AUTO_INCREMENT database yang generate id secara otomatis
+                    // Membiarkan TiDB mengisi ID secara AUTO_INCREMENT
                     $stmt_ins = $pdo->prepare("INSERT INTO users (nama, email, password) VALUES (:nama, :email, :pass)");
                     
                     if ($stmt_ins->execute(['nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
-                        $success = "Akun berhasil dibuat! Silakan masuk.";
-                        $_POST = array();
+                        $success = "Akun berhasil dibuat! Mengalihkan ke halaman login dalam 3 detik...";
+                        $_POST = array(); // Reset Form
                     } else {
-                        $error = "Gagal memproses pendaftaran.";
+                        $error = "Gagal memproses pendaftaran data pendaftaran.";
                     }
                 }
             } catch (PDOException $e) {
-                // Memberikan pesan error yang lebih informatif jika database bermasalah
                 $error = "Pesan Sistem: " . $e->getMessage();
             }
         }
@@ -66,6 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .gradient-senja { background: linear-gradient(135deg, #f97316 0%, #4f46e5 100%); }
     </style>
+    
+    <?php if (!empty($success)): ?>
+        <meta http-equiv="refresh" content="3;url=/login">
+    <?php endif; ?>
 </head>
 <body class="bg-slate-50 min-h-screen flex flex-col justify-between">
 
@@ -86,12 +89,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php if (!empty($success)): ?>
                 <div class="bg-emerald-50 border border-emerald-100 text-emerald-600 text-xs py-3 px-4 rounded-xl mb-4 font-medium flex items-center gap-2">
-                    <span>✅</span> <?= htmlspecialchars($success) ?>
+                    <span class="animate-spin">⏳</span> <?= htmlspecialchars($success) ?>
                 </div>
             <?php endif; ?>
 
             <form action="" method="POST" class="space-y-4">
-                
                 <div>
                     <label for="nama" class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nama Lengkap</label>
                     <div class="relative">
@@ -126,7 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         class="w-full text-xs gradient-senja hover:opacity-90 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-950/20 transform hover:-translate-y-0.5 cursor-pointer mt-2">
                     Daftar Akun &rarr;
                 </button>
-
             </form>
 
             <div class="mt-6 pt-4 border-t border-slate-100 text-center">
@@ -142,6 +143,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <footer class="bg-indigo-950 text-slate-500 text-[10px] py-4 text-center border-t border-indigo-900/40">
         <p>&copy; 2026 SenjaTrack Workspace System &bull; Panel Core v4.0</p>
     </footer>
+
+    <script>
+        <?php if (!empty($success)): ?>
+            setTimeout(function() {
+                window.location.href = "/login";
+            }, 3000);
+        <?php endif; ?>
+    </script>
 
 </body>
 </html>
