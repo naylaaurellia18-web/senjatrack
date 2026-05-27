@@ -21,10 +21,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validasi data sederhana sebelum masuk database
     if (!empty($tipe) && $jumlah > 0 && !empty($kategori)) {
         try {
-            // Masukkan data ke tabel transactions menggunakan prepared statements PDO
-            $stmt = $pdo->prepare("INSERT INTO transactions (user_id, tipe, jumlah, kategori, tanggal) VALUES (:user_id, :tipe, :jumlah, :kategori, NOW())");
+            // GENERATE ID TRANSAKSI UNIK SECARA MANUAL (Mengatasi kendala ketiadaan Auto Increment)
+            $unique_trans_id = substr(md5(uniqid(rand(), true)), 0, 10);
+
+            // Masukkan data ke tabel transactions dengan menyertakan parameter :id secara eksplisit
+            $stmt = $pdo->prepare("INSERT INTO transactions (id, user_id, tipe, jumlah, kategori, tanggal) VALUES (:id, :user_id, :tipe, :jumlah, :kategori, NOW())");
             
             $stmt->execute([
+                'id'       => $unique_trans_id,
                 'user_id'  => $user_id,
                 'tipe'     => $tipe,
                 'jumlah'   => $jumlah,
@@ -36,16 +40,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
 
         } catch (PDOException $e) {
-            // Jika ada error pada database, tampilkan pesan error demi kebutuhan debugging lomba
             die("Gagal menyimpan transaksi ke database: " . $e->getMessage());
         }
     } else {
-        // Jika inputan tidak valid, kembalikan ke dashboard
         header("Location: dashboard.php");
         exit;
     }
 } else {
-    // Jika file diakses langsung tanpa POST method, kunci aksesnya
     header("Location: dashboard.php");
     exit;
 }
