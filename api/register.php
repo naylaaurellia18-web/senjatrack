@@ -31,19 +31,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = "Email ini sudah terdaftar di sistem kami!";
                 } else {
                     // ---------------------------------------------------------
-                    // PLAN C: MEMBUAT STRING UNIK (ID ACAK) SEBAGAI PRIMARY KEY
+                    // PLAN B: GENERATE ID MANUAL AGAR COCOK DENGAN DATABASE ONLINE
                     // ---------------------------------------------------------
-                    // Membuat ID acak berbasis waktu agar database tidak mendeteksi Auto Increment
-                    $unique_id = substr(md5(uniqid(rand(), true)), 0, 10); // Menghasilkan 10 karakter acak unik
+                    // Ambil ID tertinggi saat ini yang ada di database
+                    $stmt_max = $pdo->query("SELECT MAX(id) as max_id FROM users");
+                    $row_max = $stmt_max->fetch();
+                    
+                    // Jika database masih kosong, mulai dari 1. Jika sudah ada, tambah 1.
+                    $next_id = ($row_max['max_id'] ?? 0) + 1;
                     // ---------------------------------------------------------
 
                     // Hash password untuk keamanan data pengguna
                     $hashed_password = password_hash($pass, PASSWORD_BCRYPT);
                     
-                    // Kita masukkan ID unik string ke database
+                    // Kita masukkan kolom 'id' secara eksplisit ke dalam query agar database tidak protes
                     $stmt_ins = $pdo->prepare("INSERT INTO users (id, nama, email, password) VALUES (:id, :nama, :email, :pass)");
                     
-                    if ($stmt_ins->execute(['id' => $unique_id, 'nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
+                    if ($stmt_ins->execute(['id' => $next_id, 'nama' => $nama, 'email' => $email, 'pass' => $hashed_password])) {
                         $success = "Akun berhasil dibuat! Silakan masuk.";
                         // Reset input form jika sukses
                         $_POST = array();
