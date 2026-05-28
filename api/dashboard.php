@@ -69,11 +69,6 @@ $recent_transactions = $stmt_recent->fetchAll();
                 <span>Beranda & Catat</span>
             </a>
 
-            <a href="/fitur_plus" class="sidebar-link">
-                <span class="text-base">✨</span>
-                <span>Fitur Pro Finansial</span>
-            </a>
-
             <div class="pt-4">
                 <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-2 mb-3">Akun</p>
                 <a href="/logout" class="sidebar-link text-rose-500 hover:!bg-rose-50 hover:!text-rose-600">

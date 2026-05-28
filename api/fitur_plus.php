@@ -327,7 +327,6 @@ if ($total_income > 0) {
                     <p class="text-xs text-slate-400 mt-0.5">Modul pelacak lanjutan untuk simulasi dan kearsipan digital.</p>
                 </div>
                 <div class="flex gap-2">
-                    <a href="/dashboard" class="text-xs bg-white text-indigo-950 font-bold px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition shadow-sm">🏠 Dashboard</a>
                     <button onclick="window.print()" class="text-xs bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2.5 rounded-xl shadow-sm cursor-pointer transition">🖨️ Cetak</button>
                 </div>
             </div>
