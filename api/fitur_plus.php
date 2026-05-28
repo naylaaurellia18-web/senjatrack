@@ -114,21 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-// BATAS PERUBAHAN - Biarkan sisa kode di bawah baris ini tetap seperti aslinya...
-
-    // D. Tambah Rencana Belanja Baru
-    if ($action === 'tambah_belanja') {
-        $nama_barang = htmlspecialchars(trim($_POST['nama_barang']));
-        $estimasi_harga = (float)$_POST['estimasi_harga'];
-
-        if (!empty($nama_barang) && $estimasi_harga > 0) {
-            $stmt = $pdo->prepare("INSERT INTO shopping_plans (user_id, nama_barang, estimasi_harga, status_beli) VALUES (:user_id, :nama, :harga, 'belum')");
-            $stmt->execute(['user_id' => $user_id, 'nama' => $nama_barang, 'harga' => $estimasi_harga]);
-            $message = "Item rencana belanja berhasil dimasukkan daftar! 🛒";
-            $status = "success";
-        }
-    }
-}
 
 // Logika Proses Aksi GET Ekstra untuk Rencana Belanja
 if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
@@ -147,7 +132,6 @@ if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
 // ==========================================
 // 3. AMBIL DATA DARI DATABASE (AGREGASI)
 // ==========================================
-// FIX: Pakai prepared statements untuk mencegah SQL Injection
 $stmt_sg = $pdo->prepare("SELECT * FROM saving_goals WHERE user_id = :uid ORDER BY id DESC");
 $stmt_sg->execute(['uid' => $user_id]);
 $saving_goals = $stmt_sg->fetchAll();
