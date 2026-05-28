@@ -158,8 +158,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
     $b_id = (int)$_GET['id'];
     if ($_GET['action_belanja'] === 'check') {
-        $stmt = $pdo->prepare("UPDATE shopping_plans SET status_beli = 'sudah' WHERE id = :id AND user_id = :uid");
-        $stmt->execute(['id' => $b_id, 'uid' => $user_id]);
+        // Ambil data item belanja dulu untuk dicatat ke transaksi
+        $stmt_info = $pdo->prepare("SELECT * FROM shopping_plans WHERE id = :id AND user_id = :uid AND status_beli = 'belum'");
+        $stmt_info->execute(['id' => $b_id, 'uid' => $user_id]);
+        $item = $stmt_info->fetch();
+
+        if ($item) {
+            try {
+                $pdo->beginTransaction();
+
+                // 1. Tandai item sebagai sudah dibeli
+                $stmt_update = $pdo->prepare("UPDATE shopping_plans SET status_beli = 'sudah' WHERE id = :id AND user_id = :uid");
+                $stmt_update->execute(['id' => $b_id, 'uid' => $user_id]);
+
+                // 2. Catat ke transactions sebagai pengeluaran agar saldo terpotong otomatis
+                $stmt_tx = $pdo->prepare("INSERT INTO transactions (user_id, tipe, jumlah, kategori, tanggal) VALUES (:user_id, 'pengeluaran', :jumlah, :kategori, NOW())");
+                $stmt_tx->execute([
+                    'user_id'  => $user_id,
+                    'jumlah'   => $item['estimasi_harga'],
+                    'kategori' => "Belanja: " . htmlspecialchars($item['nama_barang'])
+                ]);
+
+                $pdo->commit();
+            } catch (PDOException $e) {
+                $pdo->rollBack();
+            }
+        }
     } elseif ($_GET['action_belanja'] === 'hapus') {
         $stmt = $pdo->prepare("DELETE FROM shopping_plans WHERE id = :id AND user_id = :uid");
         $stmt->execute(['id' => $b_id, 'uid' => $user_id]);
