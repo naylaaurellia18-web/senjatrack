@@ -15,9 +15,8 @@ $status = '';
 
 // --- AUTOMATIC TABLE CHECKER ---
 try {
-    // FIX: Tambahkan saving_goals yang sebelumnya tidak dibuat otomatis
     $pdo->exec("CREATE TABLE IF NOT EXISTS saving_goals (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_target VARCHAR(255) NOT NULL, nominal_target FLOAT NOT NULL, nominal_terkumpul FLOAT NOT NULL DEFAULT 0)");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS receipts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, file_name VARCHAR(255) NOT NULL, tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS receipts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, file_name TEXT NOT NULL, tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
     $pdo->exec("CREATE TABLE IF NOT EXISTS bills (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_tagihan VARCHAR(255) NOT NULL, nominal FLOAT NOT NULL, jatuh_tempo DATE NOT NULL, status_bayar ENUM('belum', 'lunas') DEFAULT 'belum')");
     $pdo->exec("CREATE TABLE IF NOT EXISTS shopping_plans (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_barang VARCHAR(255) NOT NULL, estimasi_harga FLOAT NOT NULL, status_beli ENUM('belum', 'sudah') DEFAULT 'belum')");
 } catch (PDOException $e) {}
@@ -34,9 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nominal_target = (float)($_POST['nominal_target'] ?? 0);
 
         if (!empty($nama_target) && $nominal_target > 0) {
-            // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
             $manual_id = rand(100000, 999999) . rand(1000, 9999);
-            
             $stmt = $pdo->prepare("INSERT INTO saving_goals (id, user_id, nama_target, nominal_target, nominal_terkumpul) VALUES (:id, :user_id, :nama, :target, 0)");
             $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_target, 'target' => $nominal_target]);
             $message = "Target menabung baru berhasil dipasang! 🎯";
@@ -51,9 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $jatuh_tempo = $_POST['jatuh_tempo'];
 
         if (!empty($nama_tagihan) && $nominal_tagihan > 0 && !empty($jatuh_tempo)) {
-            // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
             $manual_id = rand(100000, 999999) . rand(1000, 9999);
-
             $stmt = $pdo->prepare("INSERT INTO bills (id, user_id, nama_tagihan, nominal, jatuh_tempo, status_bayar) VALUES (:id, :user_id, :nama, :nominal, :tempo, 'belum')");
             $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_tagihan, 'nominal' => $nominal_tagihan, 'tempo' => $jatuh_tempo]);
             $message = "Pengingat tagihan berhasil disimpan! 🔔";
@@ -61,39 +56,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // C. Upload Struk Belanja
+    // C. Simpan Link Struk Belanja (FIX READ-ONLY SYSTEM VERCEL)
     if ($action === 'upload_struk') {
-        if (isset($_FILES['struk_file']) && $_FILES['struk_file']['error'] === UPLOAD_ERR_OK) {
-            $file_tmp  = $_FILES['struk_file']['tmp_name'];
-            $file_size = $_FILES['struk_file']['size'];
-            $file_ext  = strtolower(pathinfo($_FILES['struk_file']['name'], PATHINFO_EXTENSION));
-            
-            if ($file_size > 2 * 1024 * 1024) {
-                $message = "Gagal! Ukuran file melebihi batas maksimal 2MB.";
-                $status = "error";
-            } elseif (!in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
-                $message = "Gagal! Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.";
-                $status = "error";
-            } else {
-                $upload_dir = 'uploads/receipts/';
-                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-
-                $new_file_name = 'struk_' . time() . '_' . uniqid() . '.' . $file_ext;
-                if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
-                    // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
-                    $manual_id = rand(100000, 999999) . rand(1000, 9999);
-
-                    $stmt = $pdo->prepare("INSERT INTO receipts (id, user_id, file_name) VALUES (:id, :user_id, :file_name)");
-                    $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'file_name' => $new_file_name]);
-                    $message = "Struk belanja berhasil diarsipkan! 📸";
-                    $status = "success";
-                } else {
-                    $message = "Gagal menyimpan file. Penyimpanan lokal tidak tersedia di environment ini.";
-                    $status = "error";
-                }
-            }
+        $link_foto = filter_var(trim($_POST['struk_link']), FILTER_VALIDATE_URL);
+        
+        if ($link_foto) {
+            $manual_id = rand(100000, 999999) . rand(1000, 9999);
+            $stmt = $pdo->prepare("INSERT INTO receipts (id, user_id, file_name) VALUES (:id, :user_id, :file_name)");
+            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'file_name' => $link_foto]);
+            $message = "Tautan struk belanja berhasil diarsipkan! 📸";
+            $status = "success";
         } else {
-            $message = "Tidak ada file yang dipilih atau terjadi kesalahan upload.";
+            $message = "Gagal! Format URL/Tautan gambar tidak valid.";
             $status = "error";
         }
     }
@@ -104,9 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $estimasi_harga = (float)$_POST['estimasi_harga'];
 
         if (!empty($nama_barang) && $estimasi_harga > 0) {
-            // 🔥 BYPASS FIX: Generate ID acak unik dari PHP untuk menembus aturan strict TiDB
             $manual_id = rand(100000, 999999) . rand(1000, 9999);
-
             $stmt = $pdo->prepare("INSERT INTO shopping_plans (id, user_id, nama_barang, estimasi_harga, status_beli) VALUES (:id, :user_id, :nama, :harga, 'belum')");
             $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_barang, 'harga' => $estimasi_harga]);
             $message = "Item rencana belanja berhasil dimasukkan daftar! 🛒";
@@ -115,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Logika Proses Aksi GET Ekstra untuk Rencana Belanja
+// Logika GET Rencana Belanja
 if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
     $b_id = (int)$_GET['id'];
     if ($_GET['action_belanja'] === 'check') {
@@ -148,7 +120,6 @@ $stmt_sp = $pdo->prepare("SELECT * FROM shopping_plans WHERE user_id = :uid ORDE
 $stmt_sp->execute(['uid' => $user_id]);
 $shopping_plans = $stmt_sp->fetchAll();
 
-// Ambil Agregasi Riwayat Transaksi untuk Hitung Skor Kesehatan Finansial
 $current_month = date('Y-m');
 $stmt_inc = $pdo->prepare("SELECT SUM(jumlah) as total FROM transactions WHERE user_id = :user_id AND tipe = 'pemasukan'");
 $stmt_inc->execute(['user_id' => $user_id]);
@@ -158,7 +129,6 @@ $stmt_exp = $pdo->prepare("SELECT SUM(jumlah) as total FROM transactions WHERE u
 $stmt_exp->execute(['user_id' => $user_id, 'bulan_ini' => $current_month]);
 $total_expense = $stmt_exp->fetch()['total'] ?? 0;
 
-// Logika Perhitungan Finansial Kesehatan
 $financial_score = 100;
 $status_health = "Sehat Walafiat 💰";
 $tips_health = "Luar biasa! Manajemen keuanganmu sangat terkontrol dengan baik bulan ini. Pertahankan porsi ini dan teruskan menabung.";
@@ -166,7 +136,6 @@ $score_color = "text-emerald-600 bg-emerald-50 border border-emerald-100";
 
 if ($total_income > 0) {
     $rasio_pengeluaran = ($total_expense / $total_income) * 100;
-    
     if ($rasio_pengeluaran > 100) {
         $financial_score = max(0, round(100 - ($rasio_pengeluaran - 100)));
         $status_health = "Kritis / Overbudget 🚨";
@@ -391,17 +360,18 @@ if ($total_income > 0) {
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                     <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                         <span class="text-base">📸</span>
-                        <h3 class="font-bold text-sm text-indigo-950">Scanner & Arsip Berkas Nota</h3>
+                        <h3 class="font-bold text-sm text-indigo-950">Arsip Digital Berkas Nota</h3>
                     </div>
-                    <form action="/fitur_plus" method="POST" enctype="multipart/form-data" class="space-y-3 text-xs">
+                    
+                    <form action="/fitur_plus" method="POST" class="space-y-3 text-xs">
                         <input type="hidden" name="action" value="upload_struk">
-                        <div class="border-2 border-dashed border-slate-200 hover:border-orange-400 rounded-xl p-5 text-center bg-slate-50/50 relative transition-all group">
-                            <input type="file" name="struk_file" required accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
-                            <span class="text-2xl block group-hover:scale-110 transition-transform">📂</span>
-                            <p class="font-bold text-slate-600 text-[11px] mt-1.5">Pilih File Gambar Struk / Nota</p>
-                            <p class="text-[9px] text-slate-400 mt-0.5">Format: JPG, JPEG, PNG (Maks. 2MB)</p>
+                        <div class="space-y-1">
+                            <label class="font-bold text-slate-600 block">Tautan / Link URL Gambar Struk</label>
+                            <input type="url" name="struk_link" required placeholder="https://i.ibb.co/xyz/struk.jpg" 
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] focus:outline-none focus:border-orange-400">
+                            <p class="text-[9px] text-slate-400 pt-0.5">💡 Tips: Upload dulu fotomu di situs gratis seperti <a href="https://imgbb.com/" target="_blank" class="text-orange-500 underline font-bold">imgbb.com</a>, lalu paste link gambarnya di sini.</p>
                         </div>
-                        <button type="submit" class="w-full gradient-senja text-white text-[11px] font-bold py-2.5 rounded-xl shadow-xs cursor-pointer hover:opacity-95 transition-all">Unggah & Kunci Arsip 🚀</button>
+                        <button type="submit" class="w-full gradient-senja text-white text-[11px] font-bold py-2.5 rounded-xl shadow-xs cursor-pointer hover:opacity-95 transition-all">Simpan Tautan Nota 🚀</button>
                     </form>
 
                     <div class="border-t border-slate-100 pt-3 space-y-2.5">
@@ -411,7 +381,7 @@ if ($total_income > 0) {
                                 <thead>
                                     <tr class="bg-slate-50 text-slate-500 border-b border-slate-100 font-bold">
                                         <th class="p-2.5">Pratinjau</th>
-                                        <th class="p-2.5">Berkas</th>
+                                        <th class="p-2.5">Tautan Asal</th>
                                         <th class="p-2.5 text-center">Aksi</th>
                                     </tr>
                                 </thead>
@@ -421,9 +391,9 @@ if ($total_income > 0) {
                                     <?php else: ?>
                                         <?php foreach ($uploaded_receipts as $rcpt): ?>
                                             <tr class="hover:bg-slate-50/80 transition-colors">
-                                                <td class="p-2.5"><img src="uploads/receipts/<?= $rcpt['file_name'] ?>" class="w-9 h-9 object-cover rounded border border-slate-200"></td>
-                                                <td class="p-2.5 text-slate-600 text-[10px]"><p class="font-semibold text-slate-700 truncate max-w-[100px]"><?= htmlspecialchars($rcpt['file_name']) ?></p></td>
-                                                <td class="p-2.5 text-center"><a href="uploads/receipts/<?= $rcpt['file_name'] ?>" target="_blank" class="bg-indigo-50 text-indigo-900 hover:bg-indigo-100 font-bold px-2.5 py-1 rounded border border-indigo-100 text-[9px] transition-all">ZOOM</a></td>
+                                                <td class="p-2.5"><img src="<?= htmlspecialchars($rcpt['file_name']) ?>" class="w-9 h-9 object-cover rounded border border-slate-200" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><polyline points=\'21 15 16 10 5 21\'/></svg>'"></td>
+                                                <td class="p-2.5 text-slate-600 text-[10px]"><p class="font-semibold text-slate-700 truncate max-w-[120px]"><?= htmlspecialchars($rcpt['file_name']) ?></p></td>
+                                                <td class="p-2.5 text-center"><a href="<?= htmlspecialchars($rcpt['file_name']) ?>" target="_blank" class="bg-indigo-50 text-indigo-900 hover:bg-indigo-100 font-bold px-2.5 py-1 rounded border border-indigo-100 text-[9px] transition-all">BUKA</a></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
