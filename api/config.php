@@ -35,26 +35,46 @@ try {
 // ============================================================
 // FIX #1: INISIALISASI & PERBAIKAN STRUKTUR TABEL
 // ------------------------------------------------------------
-// Pastikan semua tabel ada dengan skema yang benar.
-// ALTER TABLE dijalankan untuk memastikan kolom id
-// selalu AUTO_INCREMENT meski tabel sudah terlanjur dibuat
-// tanpa AUTO_INCREMENT (penyebab error 1364).
+// PENTING: Setiap tabel dibungkus try-catch SENDIRI.
+// Dulu semua dalam 1 blok try-catch — kalau 1 gagal,
+// semua tabel di bawahnya tidak pernah diproses!
 // ============================================================
+
+// Helper: paksa kolom id jadi AUTO_INCREMENT PRIMARY KEY di TiDB
+// TiDB mensyaratkan kolom harus PRIMARY KEY sebelum bisa AUTO_INCREMENT
+function fixAutoIncrement(PDO $pdo, string $table): void {
+    // Langkah 1: Coba langsung MODIFY dengan PRIMARY KEY
+    try {
+        $pdo->exec("ALTER TABLE `$table` MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT PRIMARY KEY");
+        return;
+    } catch (PDOException $e) {}
+
+    // Langkah 2: Kalau gagal (mungkin sudah ada PK), coba tanpa PRIMARY KEY
+    try {
+        $pdo->exec("ALTER TABLE `$table` MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+        return;
+    } catch (PDOException $e) {}
+
+    // Langkah 3: Kalau masih gagal (PK di kolom lain), drop PK dulu lalu re-add
+    try {
+        $pdo->exec("ALTER TABLE `$table` DROP PRIMARY KEY, MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT PRIMARY KEY");
+    } catch (PDOException $e) {}
+}
+
+// --- Tabel users ---
 try {
-    // Tabel users — pastikan id AUTO_INCREMENT
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
-        id       INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        nama     VARCHAR(255) NOT NULL,
-        email    VARCHAR(255) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP  DEFAULT CURRENT_TIMESTAMP
+        id         INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        nama       VARCHAR(255) NOT NULL,
+        email      VARCHAR(255) NOT NULL UNIQUE,
+        password   VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
     )");
+} catch (PDOException $e) {}
+fixAutoIncrement($pdo, 'users');
 
-    // FIX UTAMA: Paksa id menjadi AUTO_INCREMENT jika tabel
-    // sudah terlanjur dibuat tanpa AUTO_INCREMENT
-    $pdo->exec("ALTER TABLE users MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
-
-    // Tabel transactions
+// --- Tabel transactions ---
+try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS transactions (
         id       INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
         user_id  INT          NOT NULL,
@@ -63,9 +83,11 @@ try {
         kategori VARCHAR(255) NOT NULL,
         tanggal  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
     )");
-    $pdo->exec("ALTER TABLE transactions MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+} catch (PDOException $e) {}
+fixAutoIncrement($pdo, 'transactions');
 
-    // Tabel saving_goals
+// --- Tabel saving_goals ---
+try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS saving_goals (
         id                INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
         user_id           INT          NOT NULL,
@@ -73,20 +95,24 @@ try {
         nominal_target    FLOAT        NOT NULL,
         nominal_terkumpul FLOAT        NOT NULL DEFAULT 0
     )");
-    $pdo->exec("ALTER TABLE saving_goals MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+} catch (PDOException $e) {}
+fixAutoIncrement($pdo, 'saving_goals');
 
-    // Tabel bills
+// --- Tabel bills ---
+try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS bills (
-        id            INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        user_id       INT          NOT NULL,
-        nama_tagihan  VARCHAR(255) NOT NULL,
-        nominal       FLOAT        NOT NULL,
-        jatuh_tempo   DATE         NOT NULL,
-        status_bayar  ENUM('belum','lunas') DEFAULT 'belum'
+        id           INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id      INT          NOT NULL,
+        nama_tagihan VARCHAR(255) NOT NULL,
+        nominal      FLOAT        NOT NULL,
+        jatuh_tempo  DATE         NOT NULL,
+        status_bayar ENUM('belum','lunas') DEFAULT 'belum'
     )");
-    $pdo->exec("ALTER TABLE bills MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+} catch (PDOException $e) {}
+fixAutoIncrement($pdo, 'bills');
 
-    // Tabel shopping_plans
+// --- Tabel shopping_plans ---
+try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS shopping_plans (
         id             INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
         user_id        INT          NOT NULL,
@@ -94,29 +120,21 @@ try {
         estimasi_harga FLOAT        NOT NULL,
         status_beli    ENUM('belum','sudah') DEFAULT 'belum'
     )");
-    $pdo->exec("ALTER TABLE shopping_plans MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+} catch (PDOException $e) {}
+fixAutoIncrement($pdo, 'shopping_plans');
 
-    // Tabel receipts
+// --- Tabel receipts ---
+try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS receipts (
         id        INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
         user_id   INT          NOT NULL,
         file_name VARCHAR(255) NOT NULL,
         tanggal   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
     )");
-    $pdo->exec("ALTER TABLE receipts MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT");
+} catch (PDOException $e) {}
+fixAutoIncrement($pdo, 'receipts');
 
-} catch (PDOException $e) {
-    // Jika ALTER gagal (misalnya sudah benar), abaikan dan lanjutkan
-}
-
-// ============================================================
-// FIX #2: DATABASE-BACKED SESSION HANDLER UNTUK VERCEL
-// ------------------------------------------------------------
-// Vercel menjalankan PHP di container serverless berbeda tiap
-// request. File session /tmp tidak di-share antar container,
-// sehingga session hilang → redirect loop (ERR_TOO_MANY_REDIRECTS).
-// Solusi: simpan session di TiDB agar bisa diakses dari mana saja.
-// ============================================================
+// --- Tabel php_sessions ---
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS php_sessions (
         session_id    VARCHAR(128) NOT NULL PRIMARY KEY,
@@ -125,6 +143,12 @@ try {
     )");
 } catch (PDOException $e) {}
 
+// ============================================================
+// FIX #2: DATABASE-BACKED SESSION HANDLER UNTUK VERCEL
+// ------------------------------------------------------------
+// Vercel PHP = serverless, /tmp tidak di-share antar container.
+// Session disimpan ke TiDB agar persist di semua container.
+// ============================================================
 class DbSessionHandler implements SessionHandlerInterface {
     private PDO $pdo;
     private int $lifetime;

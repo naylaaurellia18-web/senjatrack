@@ -4,7 +4,7 @@ session_start();
 
 // Proteksi Halaman: Jika belum login, tendang balik ke login.php
 if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+    header("Location: /login");
     exit;
 }
 
@@ -62,7 +62,7 @@ $recent_transactions = $stmt_recent->fetchAll();
                 <span class="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 hidden sm:inline">
                     👋 Halo, <span class="text-orange-300"><?= htmlspecialchars($user_nama) ?></span>
                 </span>
-                <a href="logout.php" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl transition-all shadow-md">
+                <a href="/logout" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl transition-all shadow-md">
                     Keluar 🚪
                 </a>
             </div>
@@ -77,10 +77,10 @@ $recent_transactions = $stmt_recent->fetchAll();
                 <p class="text-xs text-slate-400">Kelola uang saku kuliah harian dengan presisi otomatis.</p>
             </div>
             <div class="flex gap-2 w-full sm:w-auto">
-                <a href="dashboard.php" class="flex-1 sm:flex-none text-center text-xs bg-orange-500 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition-all">
+                <a href="/dashboard" class="flex-1 sm:flex-none text-center text-xs bg-orange-500 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition-all">
                     🏠 Dashboard Utama
                 </a>
-                <a href="fitur_plus.php" class="flex-1 sm:flex-none text-center text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-950 font-bold px-4 py-2.5 rounded-xl border border-indigo-100 transition-all">
+                <a href="/fitur_plus" class="flex-1 sm:flex-none text-center text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-950 font-bold px-4 py-2.5 rounded-xl border border-indigo-100 transition-all">
                     ✨ Fitur Pro (Nabung & Struk)
                 </a>
             </div>
@@ -125,7 +125,7 @@ $recent_transactions = $stmt_recent->fetchAll();
                     <p class="text-[11px] text-slate-400">Data otomatis terhubung ke kalkulator saldo utama.</p>
                 </div>
 
-                <form action="proses_transaksi.php" method="POST" class="space-y-4 text-xs">
+                <form action="/proses_transaksi" method="POST" class="space-y-4 text-xs">
                     
                     <div class="space-y-1">
                         <label class="font-bold text-slate-600 block">Jenis Aliran Kas</label>
