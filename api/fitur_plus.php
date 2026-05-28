@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // C. Upload Struk Belanja Mandiri (Dari Scanner & Arsip Berkas Nota)
+    // C. Upload Struk Belanja Mandiri
     if ($action === 'upload_struk') {
         if (isset($_FILES['struk_file']) && $_FILES['struk_file']['error'] === UPLOAD_ERR_OK) {
             $file_tmp  = $_FILES['struk_file']['tmp_name'];
@@ -68,17 +68,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = "Gagal! Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.";
                 $status = "error";
             } else {
-                $upload_dir = 'uploads/receipts/';
-                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-
+                // SOLUSI SERVERLESS: Simpan ke folder /tmp/ sistem yang open-write
+                $upload_dir = '/tmp/'; 
                 $new_file_name = 'struk_' . time() . '_' . uniqid() . '.' . $file_ext;
+                
                 if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
                     $stmt = $pdo->prepare("INSERT INTO receipts (user_id, file_name) VALUES (:user_id, :file_name)");
                     $stmt->execute(['user_id' => $user_id, 'file_name' => $new_file_name]);
                     $message = "Struk belanja berhasil diarsipkan! 📸";
                     $status = "success";
                 } else {
-                    $message = "Gagal menyimpan file. Penyimpanan lokal tidak tersedia.";
+                    $message = "Gagal menyimpan file ke temporary space.";
                     $status = "error";
                 }
             }
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // FIX BARU: Logika POST untuk Bayar Tagihan + Upload Struk Bukti Bayar
+    // D. Bayar Tagihan + Upload Struk Bukti Bayar
     if ($action === 'bayar_tagihan_struk') {
         $id_tagihan = (int)$_POST['id_tagihan'];
         
@@ -104,9 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = "Gagal! Format bukti bayar wajib JPG, JPEG, atau PNG.";
                 $status = "error";
             } else {
-                $upload_dir = 'uploads/receipts/';
-                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-
+                // SOLUSI SERVERLESS: Simpan ke folder /tmp/ agar tidak memicu Read-only error
+                $upload_dir = '/tmp/';
                 $new_file_name = 'struk_bayar_' . time() . '_' . uniqid() . '.' . $file_ext;
                 
                 if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
@@ -117,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmtUpdate = $pdo->prepare("UPDATE bills SET status_bayar = 'lunas' WHERE id = :id AND user_id = :uid");
                         $stmtUpdate->execute(['id' => $id_tagihan, 'uid' => $user_id]);
 
-                        // 2. Arsipkan juga ke tabel riwayat receipts agar tampil di lemari arsip
+                        // 2. Arsipkan ke tabel riwayat receipts
                         $stmtReceipt = $pdo->prepare("INSERT INTO receipts (user_id, file_name) VALUES (:uid, :file_name)");
                         $stmtReceipt->execute(['uid' => $user_id, 'file_name' => $new_file_name]);
 
@@ -131,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $status = "error";
                     }
                 } else {
-                    $message = "Gagal mengunggah bukti pembayaran.";
+                    $message = "Gagal memindahkan berkas pembayaran ke temporary space.";
                     $status = "error";
                 }
             }
@@ -141,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // D. Tambah Rencana Belanja Baru
+    // E. Tambah Rencana Belanja Baru
     if ($action === 'tambah_belanja') {
         $nama_barang = htmlspecialchars(trim($_POST['nama_barang']));
         $estimasi_harga = (float)$_POST['estimasi_harga'];
@@ -169,7 +168,7 @@ if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
     exit;
 }
 
-// Handler GET khusus hapus tagihan (karena action bayar sudah dipindah lewat MODAL POST di atas)
+// Handler GET khusus hapus tagihan
 if (isset($_GET['action_tagihan']) && $_GET['action_tagihan'] === 'hapus' && isset($_GET['id'])) {
     $t_id = (int)$_GET['id'];
     $stmt = $pdo->prepare("DELETE FROM bills WHERE id = :id AND user_id = :uid");
@@ -468,9 +467,11 @@ if ($total_income > 0) {
                                     <?php else: ?>
                                         <?php foreach ($uploaded_receipts as $rcpt): ?>
                                             <tr class="hover:bg-slate-50/80 transition-colors">
-                                                <td class="p-2.5"><img src="uploads/receipts/<?= $rcpt['file_name'] ?>" class="w-9 h-9 object-cover rounded border border-slate-200"></td>
+                                                <td class="p-2.5">
+                                                    <div class="w-9 h-9 bg-slate-100 flex items-center justify-center rounded border border-slate-200 text-base" title="<?= htmlspecialchars($rcpt['file_name']) ?>">📄</div>
+                                                </td>
                                                 <td class="p-2.5 text-slate-600 text-[10px]"><p class="font-semibold text-slate-700 truncate max-w-[100px]"><?= htmlspecialchars($rcpt['file_name']) ?></p></td>
-                                                <td class="p-2.5 text-center"><a href="uploads/receipts/<?= $rcpt['file_name'] ?>" target="_blank" class="bg-indigo-50 text-indigo-900 hover:bg-indigo-100 font-bold px-2.5 py-1 rounded border border-indigo-100 text-[9px] transition-all">ZOOM</a></td>
+                                                <td class="p-2.5 text-center"><span class="text-slate-400 text-[9px] italic">Terarsip (/tmp)</span></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -582,7 +583,6 @@ if ($total_income > 0) {
         function bukaModalBelanja() { document.getElementById('belanjaModal').classList.remove('hidden'); }
         function tutupModalBelanja() { document.getElementById('belanjaModal').classList.add('hidden'); }
         
-        // FIX BARU: Fungsi Javascript untuk Membuka/Menutup Modal Upload Bukti Bayar Tagihan
         function bukaModalBayarStruk(id, namaTagihan) {
             document.getElementById('input_id_tagihan').value = id;
             document.getElementById('nama_tagihan_display').innerText = namaTagihan;
