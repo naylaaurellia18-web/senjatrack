@@ -16,7 +16,7 @@ $status = '';
 // --- AUTOMATIC TABLE CHECKER ---
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS saving_goals (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_target VARCHAR(255) NOT NULL, nominal_target FLOAT NOT NULL, nominal_terkumpul FLOAT NOT NULL DEFAULT 0)");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS receipts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, file_name TEXT NOT NULL, tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS receipts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, file_name VARCHAR(255) NOT NULL, tanggal TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
     $pdo->exec("CREATE TABLE IF NOT EXISTS bills (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_tagihan VARCHAR(255) NOT NULL, nominal FLOAT NOT NULL, jatuh_tempo DATE NOT NULL, status_bayar ENUM('belum', 'lunas') DEFAULT 'belum')");
     $pdo->exec("CREATE TABLE IF NOT EXISTS shopping_plans (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, nama_barang VARCHAR(255) NOT NULL, estimasi_harga FLOAT NOT NULL, status_beli ENUM('belum', 'sudah') DEFAULT 'belum')");
 } catch (PDOException $e) {}
@@ -33,9 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nominal_target = (float)($_POST['nominal_target'] ?? 0);
 
         if (!empty($nama_target) && $nominal_target > 0) {
-            $manual_id = rand(100000, 999999) . rand(1000, 9999);
-            $stmt = $pdo->prepare("INSERT INTO saving_goals (id, user_id, nama_target, nominal_target, nominal_terkumpul) VALUES (:id, :user_id, :nama, :target, 0)");
-            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_target, 'target' => $nominal_target]);
+            $stmt = $pdo->prepare("INSERT INTO saving_goals (user_id, nama_target, nominal_target, nominal_terkumpul) VALUES (:user_id, :nama, :target, 0)");
+            $stmt->execute(['user_id' => $user_id, 'nama' => $nama_target, 'target' => $nominal_target]);
             $message = "Target menabung baru berhasil dipasang! 🎯";
             $status = "success";
         }
@@ -48,28 +47,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $jatuh_tempo = $_POST['jatuh_tempo'];
 
         if (!empty($nama_tagihan) && $nominal_tagihan > 0 && !empty($jatuh_tempo)) {
-            $manual_id = rand(100000, 999999) . rand(1000, 9999);
-            $stmt = $pdo->prepare("INSERT INTO bills (id, user_id, nama_tagihan, nominal, jatuh_tempo, status_bayar) VALUES (:id, :user_id, :nama, :nominal, :tempo, 'belum')");
-            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_tagihan, 'nominal' => $nominal_tagihan, 'tempo' => $jatuh_tempo]);
+            $stmt = $pdo->prepare("INSERT INTO bills (user_id, nama_tagihan, nominal, jatuh_tempo, status_bayar) VALUES (:user_id, :nama, :nominal, :tempo, 'belum')");
+            $stmt->execute(['user_id' => $user_id, 'nama' => $nama_tagihan, 'nominal' => $nominal_tagihan, 'tempo' => $jatuh_tempo]);
             $message = "Pengingat tagihan berhasil disimpan! 🔔";
             $status = "success";
         }
     }
 
-    // C. Simpan Link Struk Belanja (FIX READ-ONLY SYSTEM VERCEL & UNDEFINED KEY ERROR)
+    // C. Upload Struk Belanja Mandiri (Dari Scanner & Arsip Berkas Nota)
     if ($action === 'upload_struk') {
-        // Menggunakan null coalescing (??) untuk mengantisipasi key tidak ditemukan
-        $struk_input = $_POST['struk_link'] ?? '';
-        $link_foto = filter_var(trim($struk_input), FILTER_VALIDATE_URL);
-        
-        if ($link_foto) {
-            $manual_id = rand(100000, 999999) . rand(1000, 9999);
-            $stmt = $pdo->prepare("INSERT INTO receipts (id, user_id, file_name) VALUES (:id, :user_id, :file_name)");
-            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'file_name' => $link_foto]);
-            $message = "Tautan struk belanja berhasil diarsipkan! 📸";
-            $status = "success";
+        if (isset($_FILES['struk_file']) && $_FILES['struk_file']['error'] === UPLOAD_ERR_OK) {
+            $file_tmp  = $_FILES['struk_file']['tmp_name'];
+            $file_size = $_FILES['struk_file']['size'];
+            $file_ext  = strtolower(pathinfo($_FILES['struk_file']['name'], PATHINFO_EXTENSION));
+            
+            if ($file_size > 2 * 1024 * 1024) {
+                $message = "Gagal! Ukuran file melebihi batas maksimal 2MB.";
+                $status = "error";
+            } elseif (!in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
+                $message = "Gagal! Format file tidak didukung. Gunakan JPG, JPEG, atau PNG.";
+                $status = "error";
+            } else {
+                $upload_dir = 'uploads/receipts/';
+                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+
+                $new_file_name = 'struk_' . time() . '_' . uniqid() . '.' . $file_ext;
+                if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
+                    $stmt = $pdo->prepare("INSERT INTO receipts (user_id, file_name) VALUES (:user_id, :file_name)");
+                    $stmt->execute(['user_id' => $user_id, 'file_name' => $new_file_name]);
+                    $message = "Struk belanja berhasil diarsipkan! 📸";
+                    $status = "success";
+                } else {
+                    $message = "Gagal menyimpan file. Penyimpanan lokal tidak tersedia.";
+                    $status = "error";
+                }
+            }
         } else {
-            $message = "Gagal! Format URL/Tautan gambar tidak valid atau kosong.";
+            $message = "Tidak ada file yang dipilih atau terjadi kesalahan upload.";
+            $status = "error";
+        }
+    }
+
+    // FIX BARU: Logika POST untuk Bayar Tagihan + Upload Struk Bukti Bayar
+    if ($action === 'bayar_tagihan_struk') {
+        $id_tagihan = (int)$_POST['id_tagihan'];
+        
+        if (isset($_FILES['struk_file']) && $_FILES['struk_file']['error'] === UPLOAD_ERR_OK) {
+            $file_tmp  = $_FILES['struk_file']['tmp_name'];
+            $file_size = $_FILES['struk_file']['size'];
+            $file_ext  = strtolower(pathinfo($_FILES['struk_file']['name'], PATHINFO_EXTENSION));
+            
+            if ($file_size > 2 * 1024 * 1024) {
+                $message = "Gagal! Ukuran bukti bayar melebihi 2MB.";
+                $status = "error";
+            } elseif (!in_array($file_ext, ['jpg', 'jpeg', 'png'])) {
+                $message = "Gagal! Format bukti bayar wajib JPG, JPEG, atau PNG.";
+                $status = "error";
+            } else {
+                $upload_dir = 'uploads/receipts/';
+                if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+
+                $new_file_name = 'struk_bayar_' . time() . '_' . uniqid() . '.' . $file_ext;
+                
+                if (move_uploaded_file($file_tmp, $upload_dir . $new_file_name)) {
+                    try {
+                        $pdo->beginTransaction();
+
+                        // 1. Ubah status pembayaran tagihan menjadi lunas
+                        $stmtUpdate = $pdo->prepare("UPDATE bills SET status_bayar = 'lunas' WHERE id = :id AND user_id = :uid");
+                        $stmtUpdate->execute(['id' => $id_tagihan, 'uid' => $user_id]);
+
+                        // 2. Arsipkan juga ke tabel riwayat receipts agar tampil di lemari arsip
+                        $stmtReceipt = $pdo->prepare("INSERT INTO receipts (user_id, file_name) VALUES (:uid, :file_name)");
+                        $stmtReceipt->execute(['uid' => $user_id, 'file_name' => $new_file_name]);
+
+                        $pdo->commit();
+                        $message = "Pembayaran tagihan berhasil dikonfirmasi dan struk disimpan! 💸";
+                        $status = "success";
+                    } catch (PDOException $e) {
+                        $pdo->rollBack();
+                        if (file_exists($upload_dir . $new_file_name)) unlink($upload_dir . $new_file_name);
+                        $message = "Gagal memproses transaksi: " . $e->getMessage();
+                        $status = "error";
+                    }
+                } else {
+                    $message = "Gagal mengunggah bukti pembayaran.";
+                    $status = "error";
+                }
+            }
+        } else {
+            $message = "Wajib melampirkan berkas struk/nota sebagai bukti bayar.";
             $status = "error";
         }
     }
@@ -80,16 +147,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $estimasi_harga = (float)$_POST['estimasi_harga'];
 
         if (!empty($nama_barang) && $estimasi_harga > 0) {
-            $manual_id = rand(100000, 999999) . rand(1000, 9999);
-            $stmt = $pdo->prepare("INSERT INTO shopping_plans (id, user_id, nama_barang, estimasi_harga, status_beli) VALUES (:id, :user_id, :nama, :harga, 'belum')");
-            $stmt->execute(['id' => $manual_id, 'user_id' => $user_id, 'nama' => $nama_barang, 'harga' => $estimasi_harga]);
+            $stmt = $pdo->prepare("INSERT INTO shopping_plans (user_id, nama_barang, estimasi_harga, status_beli) VALUES (:user_id, :nama, :harga, 'belum')");
+            $stmt->execute(['user_id' => $user_id, 'nama' => $nama_barang, 'harga' => $estimasi_harga]);
             $message = "Item rencana belanja berhasil dimasukkan daftar! 🛒";
             $status = "success";
         }
     }
 }
 
-// Logika GET Rencana Belanja
+// Logika Proses Aksi GET Ekstra untuk Rencana Belanja & Hapus Tagihan
 if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
     $b_id = (int)$_GET['id'];
     if ($_GET['action_belanja'] === 'check') {
@@ -99,6 +165,15 @@ if (isset($_GET['action_belanja']) && isset($_GET['id'])) {
         $stmt = $pdo->prepare("DELETE FROM shopping_plans WHERE id = :id AND user_id = :uid");
         $stmt->execute(['id' => $b_id, 'uid' => $user_id]);
     }
+    header("Location: /fitur_plus");
+    exit;
+}
+
+// Handler GET khusus hapus tagihan (karena action bayar sudah dipindah lewat MODAL POST di atas)
+if (isset($_GET['action_tagihan']) && $_GET['action_tagihan'] === 'hapus' && isset($_GET['id'])) {
+    $t_id = (int)$_GET['id'];
+    $stmt = $pdo->prepare("DELETE FROM bills WHERE id = :id AND user_id = :uid");
+    $stmt->execute(['id' => $t_id, 'uid' => $user_id]);
     header("Location: /fitur_plus");
     exit;
 }
@@ -122,6 +197,7 @@ $stmt_sp = $pdo->prepare("SELECT * FROM shopping_plans WHERE user_id = :uid ORDE
 $stmt_sp->execute(['uid' => $user_id]);
 $shopping_plans = $stmt_sp->fetchAll();
 
+// Hitung Skor Kesehatan Finansial
 $current_month = date('Y-m');
 $stmt_inc = $pdo->prepare("SELECT SUM(jumlah) as total FROM transactions WHERE user_id = :user_id AND tipe = 'pemasukan'");
 $stmt_inc->execute(['user_id' => $user_id]);
@@ -308,9 +384,9 @@ if ($total_income > 0) {
                                     </div>
                                     <div class="flex gap-1.5 shrink-0">
                                         <?php if ($bill['status_bayar'] === 'belum'): ?>
-                                            <a href="/proses_tagihan?action=lunas&id=<?= $bill['id'] ?>" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-3 py-1.5 rounded shadow-xs transition-all">Bayar</a>
+                                            <button onclick="bukaModalBayarStruk(<?= $bill['id'] ?>, '<?= htmlspecialchars($bill['nama_tagihan'], ENT_QUOTES) ?>')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-3 py-1.5 rounded shadow-xs transition-all cursor-pointer">Bayar</button>
                                         <?php endif; ?>
-                                        <a href="/proses_tagihan?action=hapus&id=<?= $bill['id'] ?>" onclick="return confirm('Hapus tagihan ini?')" class="bg-slate-100 text-slate-500 hover:text-rose-600 text-[10px] p-1.5 rounded transition-all">❌</a>
+                                        <a href="/fitur_plus?action_tagihan=hapus&id=<?= $bill['id'] ?>" onclick="return confirm('Hapus tagihan ini?')" class="bg-slate-100 text-slate-500 hover:text-rose-600 text-[10px] p-1.5 rounded transition-all">❌</a>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -362,18 +438,17 @@ if ($total_income > 0) {
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
                     <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
                         <span class="text-base">📸</span>
-                        <h3 class="font-bold text-sm text-indigo-950">Arsip Digital Berkas Nota</h3>
+                        <h3 class="font-bold text-sm text-indigo-950">Scanner & Arsip Berkas Nota</h3>
                     </div>
-                    
-                    <form action="/fitur_plus" method="POST" class="space-y-3 text-xs">
+                    <form action="/fitur_plus" method="POST" enctype="multipart/form-data" class="space-y-3 text-xs">
                         <input type="hidden" name="action" value="upload_struk">
-                        <div class="space-y-1">
-                            <label class="font-bold text-slate-600 block">Tautan / Link URL Gambar Struk</label>
-                            <input type="url" name="struk_link" required placeholder="https://i.ibb.co/xyz/struk.jpg" 
-                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] focus:outline-none focus:border-orange-400">
-                            <p class="text-[9px] text-slate-400 pt-0.5">💡 Tips: Upload dulu fotomu di situs gratis seperti <a href="https://imgbb.com/" target="_blank" class="text-orange-500 underline font-bold">imgbb.com</a>, lalu paste link gambarnya di sini.</p>
+                        <div class="border-2 border-dashed border-slate-200 hover:border-orange-400 rounded-xl p-5 text-center bg-slate-50/50 relative transition-all group">
+                            <input type="file" name="struk_file" required accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                            <span class="text-2xl block group-hover:scale-110 transition-transform">📂</span>
+                            <p class="font-bold text-slate-600 text-[11px] mt-1.5">Pilih File Gambar Struk / Nota</p>
+                            <p class="text-[9px] text-slate-400 mt-0.5">Format: JPG, JPEG, PNG (Maks. 2MB)</p>
                         </div>
-                        <button type="submit" class="w-full gradient-senja text-white text-[11px] font-bold py-2.5 rounded-xl shadow-xs cursor-pointer hover:opacity-95 transition-all">Simpan Tautan Nota 🚀</button>
+                        <button type="submit" class="w-full gradient-senja text-white text-[11px] font-bold py-2.5 rounded-xl shadow-xs cursor-pointer hover:opacity-95 transition-all">Unggah & Kunci Arsip 🚀</button>
                     </form>
 
                     <div class="border-t border-slate-100 pt-3 space-y-2.5">
@@ -383,7 +458,7 @@ if ($total_income > 0) {
                                 <thead>
                                     <tr class="bg-slate-50 text-slate-500 border-b border-slate-100 font-bold">
                                         <th class="p-2.5">Pratinjau</th>
-                                        <th class="p-2.5">Tautan Asal</th>
+                                        <th class="p-2.5">Berkas</th>
                                         <th class="p-2.5 text-center">Aksi</th>
                                     </tr>
                                 </thead>
@@ -393,9 +468,9 @@ if ($total_income > 0) {
                                     <?php else: ?>
                                         <?php foreach ($uploaded_receipts as $rcpt): ?>
                                             <tr class="hover:bg-slate-50/80 transition-colors">
-                                                <td class="p-2.5"><img src="<?= htmlspecialchars($rcpt['file_name']) ?>" class="w-9 h-9 object-cover rounded border border-slate-200" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2364748b\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><polyline points=\'21 15 16 10 5 21\'/></svg>'"></td>
-                                                <td class="p-2.5 text-slate-600 text-[10px]"><p class="font-semibold text-slate-700 truncate max-w-[120px]"><?= htmlspecialchars($rcpt['file_name']) ?></p></td>
-                                                <td class="p-2.5 text-center"><a href="<?= htmlspecialchars($rcpt['file_name']) ?>" target="_blank" class="bg-indigo-50 text-indigo-900 hover:bg-indigo-100 font-bold px-2.5 py-1 rounded border border-indigo-100 text-[9px] transition-all">BUKA</a></td>
+                                                <td class="p-2.5"><img src="uploads/receipts/<?= $rcpt['file_name'] ?>" class="w-9 h-9 object-cover rounded border border-slate-200"></td>
+                                                <td class="p-2.5 text-slate-600 text-[10px]"><p class="font-semibold text-slate-700 truncate max-w-[100px]"><?= htmlspecialchars($rcpt['file_name']) ?></p></td>
+                                                <td class="p-2.5 text-center"><a href="uploads/receipts/<?= $rcpt['file_name'] ?>" target="_blank" class="bg-indigo-50 text-indigo-900 hover:bg-indigo-100 font-bold px-2.5 py-1 rounded border border-indigo-100 text-[9px] transition-all">ZOOM</a></td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php endif; ?>
@@ -443,6 +518,31 @@ if ($total_income > 0) {
         </div>
     </main>
 
+    <div id="bayarStrukModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-indigo-950 text-sm">💸 Konfirmasi Bayar Tagihan</h3>
+                <button onclick="tutupModalBayarStruk()" class="text-slate-400 font-bold hover:text-slate-600">✕</button>
+            </div>
+            <p class="text-xs text-slate-500">Membayar tagihan: <strong id="nama_tagihan_display" class="text-indigo-950"></strong></p>
+            
+            <form action="/fitur_plus" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+                <input type="hidden" name="action" value="bayar_tagihan_struk">
+                <input type="hidden" name="id_tagihan" id="input_id_tagihan">
+                
+                <div class="space-y-1.5">
+                    <label class="font-bold text-slate-600 block">Upload Bukti Transfer / Struk</label>
+                    <div class="border border-slate-200 rounded-xl p-3 bg-slate-50 relative text-center">
+                        <input type="file" name="struk_file" required accept="image/*" class="w-full text-slate-600 text-xs cursor-pointer">
+                    </div>
+                    <p class="text-[9px] text-slate-400">Format yang diterima: JPG, JPEG, PNG (Maks. 2MB)</p>
+                </div>
+                
+                <button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Konfirmasi Lunas & Upload Struk ✨</button>
+            </form>
+        </div>
+    </div>
+
     <div id="belanjaModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-indigo-950 text-sm">🛒 Tambah Rencana Belanja</h3><button onclick="tutupModalBelanja()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div>
@@ -455,65 +555,42 @@ if ($total_income > 0) {
         </div>
     </div>
 
-    <div id="targetModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
-            <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-indigo-950 text-sm">🎯 Tambah Target Celengan</h3><button onclick="tutupModalTarget()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div>
-            <form action="/fitur_plus" method="POST" class="space-y-4 text-xs">
-                <input type="hidden" name="action" value="tambah_target">
-                <div><label class="font-bold text-slate-600 block mb-1">Nama Target Impian</label><input type="text" name="nama_target" required placeholder="Contoh: Beli Sepatu Baru" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
-                <div><label class="font-bold text-slate-600 block mb-1">Nominal Target (Rp)</label><input type="number" name="nominal_target" required placeholder="Contoh: 500000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
-                <button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Pasang Target 🎯</button>
-            </form>
-        </div>
-    </div>
-
     <div id="tagihanModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-indigo-950 text-sm">🔔 Pasang Pengingat Tagihan</h3><button onclick="tutupModalTagihan()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div>
             <form action="/fitur_plus" method="POST" class="space-y-4 text-xs">
                 <input type="hidden" name="action" value="tambah_tagihan">
-                <div><label class="font-bold text-slate-600 block mb-1">Nama Tagihan</label><input type="text" name="nama_tagihan" required placeholder="Contoh: Tagihan Kosan" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
-                <div><label class="font-bold text-slate-600 block mb-1">Nominal Tagihan (Rp)</label><input type="number" name="nominal_tagihan" required placeholder="Contoh: 400000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
+                <div><label class="font-bold text-slate-600 block mb-1">Nama Tagihan</label><input type="text" name="nama_tagihan" required placeholder="Contoh: Uang Kos Juni" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
+                <div><label class="font-bold text-slate-600 block mb-1">Jumlah Nominal (Rp)</label><input type="number" name="nominal_tagihan" required placeholder="Contoh: 500000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
                 <div><label class="font-bold text-slate-600 block mb-1">Tanggal Jatuh Tempo</label><input type="date" name="jatuh_tempo" required class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
-                <button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Pengingat 🔔</button>
+                <button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Alarm Tagihan ⏰</button>
             </form>
         </div>
     </div>
 
-    <div id="pinModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl border border-slate-100 space-y-6 text-center">
-            <div class="space-y-1">
-                <h3 class="font-bold text-indigo-950 text-sm">🛡️ Simulasi Kunci Aplikasi</h3>
-                <p class="text-[10px] text-slate-400">Tekan tombol angka di bawah untuk membuka simulasi</p>
-            </div>
-            <div class="flex justify-center gap-3 my-2">
-                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
-                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
-                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
-                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
-                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
-                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
-            </div>
-            <div class="grid grid-cols-3 gap-3 max-w-[180px] mx-auto text-xs font-bold">
-                <?php for($i=1; $i<=9; $i++): ?>
-                    <button onclick="pressPin()" class="w-10 h-10 bg-slate-50 hover:bg-orange-100 rounded-full flex items-center justify-center border border-slate-100 transition-colors cursor-pointer"><?= $i ?></button>
-                <?php endfor; ?>
-                <div></div>
-                <button onclick="pressPin()" class="w-10 h-10 bg-slate-50 hover:bg-orange-100 rounded-full flex items-center justify-center border border-slate-100 transition-colors cursor-pointer">0</button>
-                <button onclick="tutupPinModal()" class="w-10 h-10 text-rose-500 hover:bg-rose-50 rounded-full flex items-center justify-center text-[10px] cursor-pointer">BATAL</button>
-            </div>
-        </div>
-    </div>
+    <div id="targetModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50"><div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4"><div class="border-b pb-2 flex justify-between items-center"><h3 class="font-bold text-indigo-950 text-sm">🎯 Pasang Target Tabungan</h3><button onclick="tutupModalTarget()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div><form action="/fitur_plus" method="POST" class="space-y-4 text-xs"><input type="hidden" name="action" value="tambah_target"><div><label class="font-bold text-slate-600 block mb-1">Nama Target</label><input type="text" name="nama_target" required placeholder="Contoh: Beli HP" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><div><label class="font-bold text-slate-600 block mb-1">Nominal (Rp)</label><input type="number" name="nominal_target" required placeholder="Contoh: 3000000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Rencana 🚀</button></form></div></div>
+
+    <div id="pinModal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50"><div class="w-full max-w-[260px] text-center space-y-6"><div class="space-y-2"><span>🌅</span><h3 class="font-bold text-white text-base">SenjaTrack App Lock</h3><p class="text-xs text-slate-400">Masukkan PIN Keamanan</p></div><div class="flex justify-center gap-4 py-2"><?php for($k=0;$k<6;$k++): ?><div class="pin-dot w-3 h-3 rounded-full bg-slate-700 transition-colors"></div><?php endfor; ?></div><div class="grid grid-cols-3 gap-4 max-w-[240px] mx-auto"><?php for($i=1; $i<=9; $i++): ?><button onclick="pressPin()" class="w-12 h-12 rounded-full border border-slate-700 text-white font-bold text-sm flex items-center justify-center transition-all cursor-pointer mx-auto hover:bg-slate-800"><?= $i ?></button><?php endfor; ?><button onclick="resetPin()" class="w-12 h-12 text-slate-500 font-semibold text-[10px] flex items-center justify-center mx-auto">Reset</button><button onclick="pressPin()" class="w-12 h-12 rounded-full border border-slate-700 text-white font-bold text-sm flex items-center justify-center mx-auto hover:bg-slate-800">0</button><button onclick="tutupPinModal()" class="w-12 h-12 text-rose-500 font-bold text-[10px] flex items-center justify-center mx-auto">Batal</button></div></div></div>
+
+    <footer class="bg-indigo-950 text-slate-500 text-[10px] py-5 text-center border-t border-indigo-900/40"><p>&copy; 2026 SenjaTrack Advanced Core</p></footer>
 
     <script>
+        function bukaModalTarget() { document.getElementById('targetModal').classList.remove('hidden'); }
+        function tutupModalTarget() { document.getElementById('targetModal').classList.add('hidden'); }
+        function bukaModalTagihan() { document.getElementById('tagihanModal').classList.remove('hidden'); }
+        function tutupModalTagihan() { document.getElementById('tagihanModal').classList.add('hidden'); }
         function bukaModalBelanja() { document.getElementById('belanjaModal').classList.remove('hidden'); }
         function tutupModalBelanja() { document.getElementById('belanjaModal').classList.add('hidden'); }
         
-        function bukaModalTarget() { document.getElementById('targetModal').classList.remove('hidden'); }
-        function tutupModalTarget() { document.getElementById('targetModal').classList.add('hidden'); }
-        
-        function bukaModalTagihan() { document.getElementById('tagihanModal').classList.remove('hidden'); }
-        function tutupModalTagihan() { document.getElementById('tagihanModal').classList.add('hidden'); }
+        // FIX BARU: Fungsi Javascript untuk Membuka/Menutup Modal Upload Bukti Bayar Tagihan
+        function bukaModalBayarStruk(id, namaTagihan) {
+            document.getElementById('input_id_tagihan').value = id;
+            document.getElementById('nama_tagihan_display').innerText = namaTagihan;
+            document.getElementById('bayarStrukModal').classList.remove('hidden');
+        }
+        function tutupModalBayarStruk() {
+            document.getElementById('bayarStrukModal').classList.add('hidden');
+        }
 
         function hitungAlokasi() {
             const saku = parseFloat(document.getElementById('input_saku').value) || 0;
@@ -529,28 +606,8 @@ if ($total_income > 0) {
         let pinCount = 0;
         function aktifkanSimulasiPin() { document.getElementById('pinModal').classList.remove('hidden'); resetPin(); }
         function tutupPinModal() { document.getElementById('pinModal').classList.add('hidden'); }
-        function pressPin() { 
-            if (pinCount < 6) { 
-                const dots = document.querySelectorAll('.pin-dot'); 
-                dots[pinCount].classList.remove('bg-slate-200'); 
-                dots[pinCount].classList.add('bg-orange-500'); 
-                pinCount++; 
-                if (pinCount === 6) { 
-                    setTimeout(() => { 
-                        alert("🎉 PIN Benar! Simulasi Kunci Aplikasi Berhasil Terbuka."); 
-                        tutupPinModal(); 
-                    }, 250); 
-                } 
-            } 
-        }
-        function resetPin() { 
-            pinCount = 0; 
-            const dots = document.querySelectorAll('.pin-dot');
-            dots.forEach(dot => {
-                dot.classList.remove('bg-orange-500');
-                dot.classList.add('bg-slate-200');
-            });
-        }
+        function pressPin() { if (pinCount < 6) { const dots = document.querySelectorAll('.pin-dot'); dots[pinCount].classList.remove('bg-slate-700'); dots[pinCount].classList.add('bg-orange-500'); pinCount++; if (pinCount === 6) { setTimeout(() => { alert("🎉 PIN Benar! Simulasi Kunci Aplikasi Berhasil Terbuka."); tutupPinModal(); }, 250); } } }
+        function resetPin() { pinCount = 0; const dots = document.querySelectorAll('.pin-dot'); dots.forEach(dot => { dot.classList.remove('bg-orange-500'); dot.classList.add('bg-slate-700'); }); }
     </script>
 </body>
 </html>
