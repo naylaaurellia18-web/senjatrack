@@ -56,9 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // C. Simpan Link Struk Belanja (FIX READ-ONLY SYSTEM VERCEL)
+    // C. Simpan Link Struk Belanja (FIX READ-ONLY SYSTEM VERCEL & UNDEFINED KEY ERROR)
     if ($action === 'upload_struk') {
-        $link_foto = filter_var(trim($_POST['struk_link']), FILTER_VALIDATE_URL);
+        // Menggunakan null coalescing (??) untuk mengantisipasi key tidak ditemukan
+        $struk_input = $_POST['struk_link'] ?? '';
+        $link_foto = filter_var(trim($struk_input), FILTER_VALIDATE_URL);
         
         if ($link_foto) {
             $manual_id = rand(100000, 999999) . rand(1000, 9999);
@@ -67,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "Tautan struk belanja berhasil diarsipkan! 📸";
             $status = "success";
         } else {
-            $message = "Gagal! Format URL/Tautan gambar tidak valid.";
+            $message = "Gagal! Format URL/Tautan gambar tidak valid atau kosong.";
             $status = "error";
         }
     }
@@ -453,33 +455,66 @@ if ($total_income > 0) {
         </div>
     </div>
 
+    <div id="targetModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-indigo-950 text-sm">🎯 Tambah Target Celengan</h3><button onclick="tutupModalTarget()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div>
+            <form action="/fitur_plus" method="POST" class="space-y-4 text-xs">
+                <input type="hidden" name="action" value="tambah_target">
+                <div><label class="font-bold text-slate-600 block mb-1">Nama Target Impian</label><input type="text" name="nama_target" required placeholder="Contoh: Beli Sepatu Baru" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
+                <div><label class="font-bold text-slate-600 block mb-1">Nominal Target (Rp)</label><input type="number" name="nominal_target" required placeholder="Contoh: 500000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
+                <button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Pasang Target 🎯</button>
+            </form>
+        </div>
+    </div>
+
     <div id="tagihanModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b pb-2"><h3 class="font-bold text-indigo-950 text-sm">🔔 Pasang Pengingat Tagihan</h3><button onclick="tutupModalTagihan()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div>
             <form action="/fitur_plus" method="POST" class="space-y-4 text-xs">
                 <input type="hidden" name="action" value="tambah_tagihan">
-                <div><label class="font-bold text-slate-600 block mb-1">Nama Tagihan</label><input type="text" name="nama_tagihan" required placeholder="Contoh: Uang Kos Juni" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
-                <div><label class="font-bold text-slate-600 block mb-1">Jumlah Nominal (Rp)</label><input type="number" name="nominal_tagihan" required placeholder="Contoh: 500000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
+                <div><label class="font-bold text-slate-600 block mb-1">Nama Tagihan</label><input type="text" name="nama_tagihan" required placeholder="Contoh: Tagihan Kosan" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
+                <div><label class="font-bold text-slate-600 block mb-1">Nominal Tagihan (Rp)</label><input type="number" name="nominal_tagihan" required placeholder="Contoh: 400000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
                 <div><label class="font-bold text-slate-600 block mb-1">Tanggal Jatuh Tempo</label><input type="date" name="jatuh_tempo" required class="w-full bg-slate-50 border rounded-xl p-2.5"></div>
-                <button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Alarm Tagihan ⏰</button>
+                <button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Pengingat 🔔</button>
             </form>
         </div>
     </div>
 
-    <div id="targetModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50"><div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4"><div class="border-b pb-2 flex justify-between items-center"><h3 class="font-bold text-indigo-950 text-sm">🎯 Pasang Target Tabungan</h3><button onclick="tutupModalTarget()" class="text-slate-400 font-bold hover:text-slate-600">✕</button></div><form action="/fitur_plus" method="POST" class="space-y-4 text-xs"><input type="hidden" name="action" value="tambah_target"><div><label class="font-bold text-slate-600 block mb-1">Nama Target</label><input type="text" name="nama_target" required placeholder="Contoh: Beli HP" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><div><label class="font-bold text-slate-600 block mb-1">Nominal (Rp)</label><input type="number" name="nominal_target" required placeholder="Contoh: 3000000" class="w-full bg-slate-50 border rounded-xl p-2.5"></div><button type="submit" class="w-full gradient-senja text-white font-bold py-2.5 rounded-xl transition-all shadow-xs">Simpan Rencana 🚀</button></form></div></div>
-
-    <div id="pinModal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50"><div class="w-full max-w-[260px] text-center space-y-6"><div class="space-y-2"><span>🌅</span><h3 class="font-bold text-white text-base">SenjaTrack App Lock</h3><p class="text-xs text-slate-400">Masukkan PIN Keamanan</p></div><div class="flex justify-center gap-4 py-2"><?php for($k=0;$k<6;$k++): ?><div class="pin-dot w-3 h-3 rounded-full bg-slate-700 transition-colors"></div><?php endfor; ?></div><div class="grid grid-cols-3 gap-4 max-w-[240px] mx-auto"><?php for($i=1; $i<=9; $i++): ?><button onclick="pressPin()" class="w-12 h-12 rounded-full border border-slate-700 text-white font-bold text-sm flex items-center justify-center transition-all cursor-pointer mx-auto hover:bg-slate-800"><?= $i ?></button><?php endfor; ?><button onclick="resetPin()" class="w-12 h-12 text-slate-500 font-semibold text-[10px] flex items-center justify-center mx-auto">Reset</button><button onclick="pressPin()" class="w-12 h-12 rounded-full border border-slate-700 text-white font-bold text-sm flex items-center justify-center mx-auto hover:bg-slate-800">0</button><button onclick="tutupPinModal()" class="w-12 h-12 text-rose-500 font-bold text-[10px] flex items-center justify-center mx-auto">Batal</button></div></div></div>
-
-    <footer class="bg-indigo-950 text-slate-500 text-[10px] py-5 text-center border-t border-indigo-900/40"><p>&copy; 2026 SenjaTrack Advanced Core</p></footer>
+    <div id="pinModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl border border-slate-100 space-y-6 text-center">
+            <div class="space-y-1">
+                <h3 class="font-bold text-indigo-950 text-sm">🛡️ Simulasi Kunci Aplikasi</h3>
+                <p class="text-[10px] text-slate-400">Tekan tombol angka di bawah untuk membuka simulasi</p>
+            </div>
+            <div class="flex justify-center gap-3 my-2">
+                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
+                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
+                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
+                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
+                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
+                <div class="pin-dot w-3 h-3 rounded-full bg-slate-200 transition-all"></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 max-w-[180px] mx-auto text-xs font-bold">
+                <?php for($i=1; $i<=9; $i++): ?>
+                    <button onclick="pressPin()" class="w-10 h-10 bg-slate-50 hover:bg-orange-100 rounded-full flex items-center justify-center border border-slate-100 transition-colors cursor-pointer"><?= $i ?></button>
+                <?php endfor; ?>
+                <div></div>
+                <button onclick="pressPin()" class="w-10 h-10 bg-slate-50 hover:bg-orange-100 rounded-full flex items-center justify-center border border-slate-100 transition-colors cursor-pointer">0</button>
+                <button onclick="tutupPinModal()" class="w-10 h-10 text-rose-500 hover:bg-rose-50 rounded-full flex items-center justify-center text-[10px] cursor-pointer">BATAL</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        function bukaModalTarget() { document.getElementById('targetModal').classList.remove('hidden'); }
-        function tutupModalTarget() { document.getElementById('targetModal').classList.add('hidden'); }
-        function bukaModalTagihan() { document.getElementById('tagihanModal').classList.remove('hidden'); }
-        function tutupModalTagihan() { document.getElementById('tagihanModal').classList.add('hidden'); }
         function bukaModalBelanja() { document.getElementById('belanjaModal').classList.remove('hidden'); }
         function tutupModalBelanja() { document.getElementById('belanjaModal').classList.add('hidden'); }
         
+        function bukaModalTarget() { document.getElementById('targetModal').classList.remove('hidden'); }
+        function tutupModalTarget() { document.getElementById('targetModal').classList.add('hidden'); }
+        
+        function bukaModalTagihan() { document.getElementById('tagihanModal').classList.remove('hidden'); }
+        function tutupModalTagihan() { document.getElementById('tagihanModal').classList.add('hidden'); }
+
         function hitungAlokasi() {
             const saku = parseFloat(document.getElementById('input_saku').value) || 0;
             const kebutuhan = saku * 0.5;
@@ -494,8 +529,28 @@ if ($total_income > 0) {
         let pinCount = 0;
         function aktifkanSimulasiPin() { document.getElementById('pinModal').classList.remove('hidden'); resetPin(); }
         function tutupPinModal() { document.getElementById('pinModal').classList.add('hidden'); }
-        function pressPin() { if (pinCount < 6) { const dots = document.querySelectorAll('.pin-dot'); dots[pinCount].classList.remove('bg-slate-700'); dots[pinCount].classList.add('bg-orange-500'); pinCount++; if (pinCount === 6) { setTimeout(() => { alert("🎉 PIN Benar! Simulasi Kunci Aplikasi Berhasil Terbuka."); tutupPinModal(); }, 250); } } }
-        function resetPin() { pinCount = 0; const dots = document.querySelectorAll('.pin-dot'); dots.forEach(dot => { dot.classList.remove('bg-orange-500'); dot.classList.add('bg-slate-700'); }); }
+        function pressPin() { 
+            if (pinCount < 6) { 
+                const dots = document.querySelectorAll('.pin-dot'); 
+                dots[pinCount].classList.remove('bg-slate-200'); 
+                dots[pinCount].classList.add('bg-orange-500'); 
+                pinCount++; 
+                if (pinCount === 6) { 
+                    setTimeout(() => { 
+                        alert("🎉 PIN Benar! Simulasi Kunci Aplikasi Berhasil Terbuka."); 
+                        tutupPinModal(); 
+                    }, 250); 
+                } 
+            } 
+        }
+        function resetPin() { 
+            pinCount = 0; 
+            const dots = document.querySelectorAll('.pin-dot');
+            dots.forEach(dot => {
+                dot.classList.remove('bg-orange-500');
+                dot.classList.add('bg-slate-200');
+            });
+        }
     </script>
 </body>
 </html>
