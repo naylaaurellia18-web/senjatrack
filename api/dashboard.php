@@ -69,6 +69,11 @@ $recent_transactions = $stmt_recent->fetchAll();
                 <span>Beranda & Catat</span>
             </a>
 
+            <a href="/fitur_plus" class="sidebar-link">
+                <span class="text-base">✨</span>
+                <span>Fitur Pro Finansial</span>
+            </a>
+
             <div class="pt-4">
                 <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 px-2 mb-3">Akun</p>
                 <a href="/logout" class="sidebar-link text-rose-500 hover:!bg-rose-50 hover:!text-rose-600">
@@ -101,7 +106,7 @@ $recent_transactions = $stmt_recent->fetchAll();
             </button>
             <div class="flex items-center gap-1.5">
                 <span>🌅</span>
-                <span class="font-extrabold text-sm text-indigo-950">Senja<span class="text-orange-500">Track</span></span>
+                <span class="font-extrabold text-sm text-indigo-950">Senja<span class="text-orange-500">Treack</span></span>
             </div>
             <div class="w-8 h-8 rounded-full gradient-senja flex items-center justify-center text-white font-bold text-xs">
                 <?= strtoupper(mb_substr($user_nama, 0, 1)) ?>
@@ -115,8 +120,6 @@ $recent_transactions = $stmt_recent->fetchAll();
                     <h1 class="text-xl font-extrabold text-indigo-950 tracking-tight">👋 Halo, <?= htmlspecialchars(explode(' ', $user_nama)[0]) ?>!</h1>
                     <p class="text-xs text-slate-400 mt-0.5">Kelola uang saku kuliahmu hari ini dengan cerdas.</p>
                 </div>
-                <a href="/fitur_plus" class="text-xs bg-indigo-950 hover:bg-indigo-900 text-white font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-1.5">
-                    ✨ Fitur Pro
                 </a>
             </div>
 
