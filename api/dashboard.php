@@ -38,10 +38,11 @@ $recent_transactions = $stmt_recent->fetchAll();
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         .gradient-senja { background: linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #f97316 100%); }
-        .sidebar-link { display:flex; align-items:center; gap:12px; padding:10px 16px; border-radius:14px; font-size:13px; font-weight:600; color:#64748b; transition:all .18s; cursor:pointer; }
+        .sidebar-link { display:flex; align-items:center; gap:12px; padding:10px 16px; border-radius:14px; font-size:13px; font-weight:600; color:#64748b; transition:all .18s; cursor:pointer; text-decoration: none; }
         .sidebar-link:hover { background:#f1f5f9; color:#1e1b4b; }
         .sidebar-link.active { background:linear-gradient(135deg,#1e1b4b,#311042,#f97316); color:#fff; box-shadow:0 4px 14px rgba(79,70,229,.18); }
         .sidebar-link.active span { filter:brightness(10); }
+        html { scroll-behavior: smooth; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex">
@@ -50,9 +51,7 @@ $recent_transactions = $stmt_recent->fetchAll();
     <div id="overlay" onclick="tutupSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
 
     <!-- ===== SIDEBAR ===== -->
-    <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-100 shadow-xl z-40 flex flex-col
-                               -translate-x-full lg:translate-x-0 transition-transform duration-300">
-
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-100 shadow-xl z-40 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-300">
         <!-- Logo -->
         <div class="px-6 py-5 border-b border-slate-100">
             <div class="flex items-center gap-2.5">
@@ -73,17 +72,17 @@ $recent_transactions = $stmt_recent->fetchAll();
                 <span>Beranda</span>
             </a>
 
-            <a href="/dashboard" class="sidebar-link">
+            <a href="#form-transaksi" class="sidebar-link">
                 <span class="text-base">✏️</span>
                 <span>Catat Transaksi</span>
             </a>
 
-            <a href="/fitur_plus" class="sidebar-link">
+            <a href="/fitur_plus#riwayat-goals" class="sidebar-link">
                 <span class="text-base">📜</span>
                 <span>Riwayat & Goals</span>
             </a>
 
-            <a href="/fitur_plus" class="sidebar-link">
+            <a href="/fitur_plus#section-tagihan" class="sidebar-link">
                 <span class="text-base">🔔</span>
                 <span>Tagihan</span>
             </a>
@@ -146,7 +145,6 @@ $recent_transactions = $stmt_recent->fetchAll();
 
             <!-- 3 Kartu Ringkasan -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
                 <div class="gradient-senja text-white p-5 rounded-2xl shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[110px]">
                     <div class="absolute -right-4 -bottom-4 text-6xl opacity-10">💰</div>
                     <span class="text-[10px] font-bold uppercase tracking-wider text-orange-200 block">Saldo Aktif Dompet</span>
@@ -173,14 +171,12 @@ $recent_transactions = $stmt_recent->fetchAll();
                     </h2>
                     <span class="text-[10px] text-slate-400">Belanja bulan ini</span>
                 </div>
-
             </div>
 
             <!-- Form + Tabel -->
             <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
-
                 <!-- Form Catat Transaksi -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm md:col-span-2 space-y-4">
+                <div id="form-transaksi" class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm md:col-span-2 space-y-4 scroll-mt-22">
                     <div class="border-b border-slate-100 pb-3">
                         <h3 class="font-bold text-sm text-indigo-950">⚡ Catat Transaksi Cepat</h3>
                         <p class="text-[11px] text-slate-400 mt-0.5">Data langsung terhubung ke saldo utama.</p>
@@ -203,20 +199,15 @@ $recent_transactions = $stmt_recent->fetchAll();
 
                         <div class="space-y-1">
                             <label for="jumlah" class="font-bold text-slate-600 block">Nominal (Rp)</label>
-                            <input type="number" id="jumlah" name="jumlah" min="100" required
-                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white text-sm font-semibold transition-all"
-                                   placeholder="Contoh: 50000">
+                            <input type="number" id="jumlah" name="jumlah" min="100" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white text-sm font-semibold transition-all" placeholder="Contoh: 50000">
                         </div>
 
                         <div class="space-y-1">
                             <label for="kategori" class="font-bold text-slate-600 block">Kategori / Keperluan</label>
-                            <input type="text" id="kategori" name="kategori" required
-                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all"
-                                   placeholder="Contoh: Kiriman Bulanan, Makan Malam">
+                            <input type="text" id="kategori" name="kategori" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition-all" placeholder="Contoh: Kiriman Bulanan, Makan Malam">
                         </div>
 
-                        <button type="submit"
-                                class="w-full gradient-senja text-white font-bold py-3 rounded-xl hover:opacity-90 shadow-md transform hover:-translate-y-0.5 cursor-pointer transition-all text-xs">
+                        <button type="submit" class="w-full gradient-senja text-white font-bold py-3 rounded-xl hover:opacity-90 shadow-md transform hover:-translate-y-0.5 cursor-pointer transition-all text-xs">
                             Simpan Transaksi &rarr;
                         </button>
                     </form>
@@ -270,7 +261,6 @@ $recent_transactions = $stmt_recent->fetchAll();
                         </span>
                     </div>
                 </div>
-
             </div>
         </main>
 

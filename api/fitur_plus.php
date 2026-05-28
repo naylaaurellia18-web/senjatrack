@@ -1,5 +1,4 @@
 <?php
-// 1. KONEKSI DATABASE & INITIALIZATION
 require_once 'config.php'; 
 session_start();
 
@@ -22,7 +21,7 @@ try {
 } catch (PDOException $e) {}
 
 // ==========================================
-// 2. LOGIKA PROSES FORM POST & GET (BACKEND)
+// LOGIKA PROSES FORM POST & GET (BACKEND)
 // ==========================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -173,9 +172,7 @@ if (isset($_GET['action_tagihan']) && $_GET['action_tagihan'] === 'hapus' && iss
     exit;
 }
 
-// ==========================================
-// 3. AMBIL DATA DARI DATABASE
-// ==========================================
+// AMBIL DATA DARI DATABASE
 $stmt_sg = $pdo->prepare("SELECT * FROM saving_goals WHERE user_id = :uid ORDER BY id DESC");
 $stmt_sg->execute(['uid' => $user_id]);
 $saving_goals = $stmt_sg->fetchAll();
@@ -237,10 +234,11 @@ if ($total_income > 0) {
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
         .gradient-senja { background: linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #f97316 100%); }
-        .sidebar-link { display:flex; align-items:center; gap:12px; padding:10px 16px; border-radius:14px; font-size:13px; font-weight:600; color:#64748b; transition:all .18s; cursor:pointer; }
+        .sidebar-link { display:flex; align-items:center; gap:12px; padding:10px 16px; border-radius:14px; font-size:13px; font-weight:600; color:#64748b; transition:all .18s; cursor:pointer; text-decoration: none; }
         .sidebar-link:hover { background:#f1f5f9; color:#1e1b4b; }
         .sidebar-link.active { background:linear-gradient(135deg,#1e1b4b,#311042,#f97316); color:#fff; box-shadow:0 4px 14px rgba(79,70,229,.18); }
         .sidebar-link.active span { filter:brightness(10); }
+        html { scroll-behavior: smooth; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex">
@@ -249,9 +247,7 @@ if ($total_income > 0) {
     <div id="overlay" onclick="tutupSidebar()" class="fixed inset-0 bg-black/40 z-30 hidden lg:hidden"></div>
 
     <!-- ===== SIDEBAR ===== -->
-    <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-100 shadow-xl z-40 flex flex-col
-                               -translate-x-full lg:translate-x-0 transition-transform duration-300">
-
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-100 shadow-xl z-40 flex flex-col -translate-x-full lg:translate-x-0 transition-transform duration-300">
         <div class="px-6 py-5 border-b border-slate-100">
             <div class="flex items-center gap-2.5">
                 <span class="text-2xl">🌅</span>
@@ -270,17 +266,17 @@ if ($total_income > 0) {
                 <span>Beranda</span>
             </a>
 
-            <a href="/dashboard" class="sidebar-link">
+            <a href="/dashboard#form-transaksi" class="sidebar-link">
                 <span class="text-base">✏️</span>
                 <span>Catat Transaksi</span>
             </a>
 
-            <a href="/fitur_plus" class="sidebar-link active">
+            <a href="#riwayat-goals" class="sidebar-link active">
                 <span class="text-base">📜</span>
                 <span>Riwayat & Goals</span>
             </a>
 
-            <a href="/fitur_plus" class="sidebar-link">
+            <a href="#section-tagihan" class="sidebar-link">
                 <span class="text-base">🔔</span>
                 <span>Tagihan</span>
             </a>
@@ -347,8 +343,8 @@ if ($total_income > 0) {
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-                <!-- COL 1: Celengan + Rencana Belanja -->
-                <div class="space-y-6">
+                <!-- COL 1: Celengan + Rencana Belanja (RIWAYAT & GOALS) -->
+                <div id="riwayat-goals" class="space-y-6 scroll-mt-22">
                     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                             <div class="flex items-center gap-2">
@@ -428,8 +424,8 @@ if ($total_income > 0) {
                     </div>
                 </div>
 
-                <!-- COL 2: Tagihan + Kalkulator + PIN -->
-                <div class="space-y-6">
+                <!-- COL 2: Tagihan + Kalkulator + PIN (TAGIHAN SECTION) -->
+                <div id="section-tagihan" class="space-y-6 scroll-mt-22">
                     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <div class="flex justify-between items-center border-b border-slate-100 pb-3">
                             <div class="flex items-center gap-2">
@@ -477,8 +473,7 @@ if ($total_income > 0) {
                             </div>
                         </div>
                         <div class="space-y-4 text-xs">
-                            <input type="number" id="input_saku" oninput="hitungAlokasi()" placeholder="Ketik Uang Saku Bulanan (Rp)"
-                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400">
+                            <input type="number" id="input_saku" oninput="hitungAlokasi()" placeholder="Ketik Uang Saku Bulanan (Rp)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400">
                             <div class="grid grid-cols-3 gap-2.5 text-center pt-1">
                                 <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100">
                                     <p class="text-[9px] font-bold text-indigo-950 uppercase tracking-wider">🍔 Pokok</p>
@@ -593,7 +588,7 @@ if ($total_income > 0) {
         </footer>
     </div>
 
-    <!-- MODALS (Tidak diubah sama sekali) -->
+    <!-- MODALS -->
     <div id="bayarStrukModal" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100 space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
