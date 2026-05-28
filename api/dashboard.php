@@ -28,6 +28,32 @@ $saldo_aktif = $total_income - $total_all_expense;
 $stmt_recent = $pdo->prepare("SELECT kategori, tipe, jumlah, tanggal FROM transactions WHERE user_id = :user_id ORDER BY tanggal DESC LIMIT 5");
 $stmt_recent->execute(['user_id' => $user_id]);
 $recent_transactions = $stmt_recent->fetchAll();
+
+// --- QUERY BARU: MENGAMBIL DATA HISTORI PENGELUARAN 7 HARI TERAKHIR UNTUK GRAFIK ---
+$stmt_chart = $pdo->prepare("
+    SELECT DATE_FORMAT(tanggal, '%d %b') as tgl, SUM(jumlah) as total 
+    FROM transactions 
+    WHERE user_id = :user_id AND tipe = 'pengeluaran' 
+    GROUP BY DATE(tanggal) 
+    ORDER BY DATE(tanggal) ASC 
+    LIMIT 7
+");
+$stmt_chart->execute(['user_id' => $user_id]);
+$chart_data = $stmt_chart->fetchAll();
+
+// Memisahkan data tanggal dan nominal ke dalam array terpisah untuk Javascript
+$chart_labels = [];
+$chart_values = [];
+foreach ($chart_data as $row) {
+    $chart_labels[] = $row['tgl'];
+    $chart_values[] = (float)$row['total'];
+}
+
+// Proteksi jika data pengeluaran masih kosong agar grafik tidak error saat pertama digunakan
+if (empty($chart_labels)) {
+    $chart_labels = [date('d M')];
+    $chart_values = [0];
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -36,6 +62,7 @@ $recent_transactions = $stmt_recent->fetchAll();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - SenjaTrack</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .gradient-senja { background: linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #f97316 100%); }
         .sidebar-link { display:flex; align-items:center; gap:12px; padding:10px 16px; border-radius:14px; font-size:13px; font-weight:600; color:#64748b; transition:all .18s; cursor:pointer; text-decoration:none; }
@@ -106,7 +133,7 @@ $recent_transactions = $stmt_recent->fetchAll();
             </button>
             <div class="flex items-center gap-1.5">
                 <span>🌅</span>
-                <span class="font-extrabold text-sm text-indigo-950">Senja<span class="text-orange-500">Treack</span></span>
+                <span class="font-extrabold text-sm text-indigo-950">Senja<span class="text-orange-500">Track</span></span>
             </div>
             <div class="w-8 h-8 rounded-full gradient-senja flex items-center justify-center text-white font-bold text-xs">
                 <?= strtoupper(mb_substr($user_nama, 0, 1)) ?>
@@ -120,6 +147,8 @@ $recent_transactions = $stmt_recent->fetchAll();
                     <h1 class="text-xl font-extrabold text-indigo-950 tracking-tight">👋 Halo, <?= htmlspecialchars(explode(' ', $user_nama)[0]) ?>!</h1>
                     <p class="text-xs text-slate-400 mt-0.5">Kelola uang saku kuliahmu hari ini dengan cerdas.</p>
                 </div>
+                <a href="/fitur_plus" class="text-xs bg-indigo-950 hover:bg-indigo-900 text-white font-bold px-4 py-2.5 rounded-xl shadow transition-all flex items-center gap-1.5">
+                    ✨ Fitur Pro
                 </a>
             </div>
 
@@ -154,6 +183,20 @@ $recent_transactions = $stmt_recent->fetchAll();
 
             </div>
 
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-sm text-indigo-950">📊 Tren Pengeluaran Harian</h3>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Visualisasi kurva alokasi dana keluar yang terekam.</p>
+                    </div>
+                    <span class="text-[10px] font-bold bg-orange-50 text-orange-600 px-2.5 py-1 rounded-md border border-orange-100">
+                        Realtime Tracker
+                    </span>
+                </div>
+                <div class="w-full h-56 relative">
+                    <canvas id="senjaTrendChart"></canvas>
+                </div>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-5">
 
                 <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm md:col-span-2 space-y-4">
@@ -263,6 +306,64 @@ $recent_transactions = $stmt_recent->fetchAll();
             document.getElementById('sidebar').classList.add('-translate-x-full');
             document.getElementById('overlay').classList.add('hidden');
         }
+
+        // ================= JAVASCRIPT: LOGIKA INISIALISASI CHART.JS =================
+        const ctx = document.getElementById('senjaTrendChart').getContext('2d');
+        
+        // Membuat gradasi warna oranye senja transparan di bawah garis kurva
+        const gradientBg = ctx.createLinearGradient(0, 0, 0, 220);
+        gradientBg.addColorStop(0, 'rgba(249, 115, 22, 0.25)'); 
+        gradientBg.addColorStop(1, 'rgba(30, 27, 75, 0.0)');   
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                // Konversi data PHP array langsung ke array JSON Javascript
+                labels: <?= json_encode($chart_labels) ?>,
+                datasets: [{
+                    label: 'Pengeluaran',
+                    data: <?= json_encode($chart_values) ?>,
+                    borderColor: '#f97316', // Orange senja
+                    borderWidth: 2.5,
+                    backgroundColor: gradientBg,
+                    fill: true,
+                    tension: 0.35, // Membuat sudut garis menjadi melengkung mulus
+                    pointBackgroundColor: '#1e1b4b', // Warna Indigo untuk titik koordinat
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false } // Sembunyikan box keterangan atas agar minimalis
+                },
+                scales: {
+                    y: {
+                        grid: { color: '#f1f5f9' },
+                        ticks: {
+                            font: { size: 10 },
+                            color: '#94a3b8',
+                            // Format rupiah ringkas pada sumbu vertikal
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        },
+                        border: { dash: [5, 5] } // Garis putus-putus vertikal
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { size: 10 },
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
     </script>
 </body>
 </html>
