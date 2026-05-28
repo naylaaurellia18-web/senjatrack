@@ -112,11 +112,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     try {
                         $pdo->beginTransaction();
 
-                        // 1. Ubah status pembayaran tagihan menjadi lunas
+                        // 1. Ambil data tagihan untuk dicatat nominalnya
+                        $stmtBill = $pdo->prepare("SELECT * FROM bills WHERE id = :id AND user_id = :uid");
+                        $stmtBill->execute(['id' => $id_tagihan, 'uid' => $user_id]);
+                        $billData = $stmtBill->fetch();
+
+                        // 2. Ubah status pembayaran tagihan menjadi lunas
                         $stmtUpdate = $pdo->prepare("UPDATE bills SET status_bayar = 'lunas' WHERE id = :id AND user_id = :uid");
                         $stmtUpdate->execute(['id' => $id_tagihan, 'uid' => $user_id]);
 
-                        // 2. Arsipkan ke tabel riwayat receipts
+                        // 3. Catat ke transactions sebagai pengeluaran agar saldo terpotong otomatis
+                        if ($billData) {
+                            $stmtTx = $pdo->prepare("INSERT INTO transactions (user_id, tipe, jumlah, kategori, tanggal) VALUES (:user_id, 'pengeluaran', :jumlah, :kategori, NOW())");
+                            $stmtTx->execute([
+                                'user_id'  => $user_id,
+                                'jumlah'   => $billData['nominal'],
+                                'kategori' => 'Bayar Tagihan: ' . htmlspecialchars($billData['nama_tagihan'])
+                            ]);
+                        }
+
+                        // 4. Arsipkan ke tabel riwayat receipts
                         $stmtReceipt = $pdo->prepare("INSERT INTO receipts (user_id, file_name) VALUES (:uid, :file_name)");
                         $stmtReceipt->execute(['uid' => $user_id, 'file_name' => $new_file_name]);
 
